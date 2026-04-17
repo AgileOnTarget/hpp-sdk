@@ -2,7 +2,11 @@
 .DS_Store
 .AppleDouble
 .LSOverride
-Icon?
+# Intentionally avoid the broad `Icon?` pattern — it spuriously matches
+# legitimate path components like `icons/` via gitignore's directory
+# semantics on some platforms. Use the exact macOS Finder sentinel filename
+# instead.
+Icon\r
 ._*
 * 2.*
 
@@ -49,6 +53,10 @@ website/build/
 *.key
 secrets.json
 config.local.json
+
+# Exception: the pinned attestation-server PUBLIC key is explicitly committed
+# (it is a public key; the extension needs it to verify server signatures).
+!chrome-extension/lib/hpp-server-pubkey.pem
 
 # OS-generated
 Thumbs.db
