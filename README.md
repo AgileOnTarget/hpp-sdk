@@ -119,6 +119,8 @@ hpp-sdk/
 ├── PATENT-NOTICE.md              ← Patent scope, trademarks, inquiries
 ├── PATENT-POLICY.md              ← Non-normative status of protocol documentation
 ├── CLA.md                        ← Contributor License Agreement (assigns copyright + patent rights to AOT LLC)
+├── AUTHORS                       ← Copyright-holder attribution
+├── THIRD-PARTY-LICENSES.md       ← Third-party component inventory (currently zero)
 ├── PATENT-NOTICE.md              ← USPTO Customer No. 224891 disclosure
 ├── CONTRIBUTING.md
 ├── SECURITY.md                   ← responsible-disclosure policy

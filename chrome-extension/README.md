@@ -130,10 +130,13 @@ Detailed integration guide: [`../protocol/docs/relying-party-guide.md`](../proto
 
 ---
 
-## License & patents
+## License, patents, and trademarks
 
-Code: [Apache 2.0](../LICENSE).
-Patent context: [`../PATENT-NOTICE.md`](../PATENT-NOTICE.md).
+- **Code:** [Apache License, Version 2.0](../LICENSE). Copyright © 2026 Agile On Target LLC.
+- **Patent scope:** [`../PATENT-NOTICE.md`](../PATENT-NOTICE.md) and [`../PATENT-POLICY.md`](../PATENT-POLICY.md). USPTO Customer No. 224891. All patent rights reserved by Agile On Target LLC; Apache 2.0 §3 grant is narrow and does not authorize commercial production deployment, OEM embedding, or ground-up reimplementation.
+- **Trademarks:** `HPP` (USPTO Serial 99656390), `Human Presence Protocol` (Serial 99656359), + 3 others filed 2026-02-17 — see [`../NOTICE`](../NOTICE) and [`../PATENT-NOTICE.md §4`](../PATENT-NOTICE.md). Use `℠` or `™` (not `®` until registration issues).
+- **Attribution:** [`../NOTICE`](../NOTICE), [`../AUTHORS`](../AUTHORS), [`../THIRD-PARTY-LICENSES.md`](../THIRD-PARTY-LICENSES.md).
+- **Contributions:** governed by [`../CLA.md`](../CLA.md).
 
 ---
 
