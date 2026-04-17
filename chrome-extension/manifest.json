@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "HPP Browser Login — Human Presence Protocol",
+  "short_name": "HPP Login",
+  "version": "1.0.0",
+  "description": "Replaces passwords and CAPTCHAs with cryptographic proof of human presence. Hardware-bound. Time-anchored. Privacy-preserving.",
+  "author": "Agile On Target LLC",
+  "homepage_url": "https://agileontarget.com",
+
+  "icons": {
+    "16":  "icons/hpp-16.png",
+    "32":  "icons/hpp-32.png",
+    "48":  "icons/hpp-48.png",
+    "128": "icons/hpp-128.png"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/hpp-16.png",
+      "32": "icons/hpp-32.png"
+    },
+    "default_title": "HPP Browser Login"
+  },
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content.js"],
+    "run_at": "document_idle",
+    "all_frames": false
+  }],
+
+  "_content_scripts_rationale": "HPP must inject on all URLs to detect pages that declare <meta name='hpp-enrollment'> and to intercept login form submissions. Without broad URL access, site declaration detection is impossible. A future version will support runtime permission registration for enrolled origins only.",
+
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+
+  "permissions": [
+    "storage",
+    "alarms",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "https://attest.humanpresenceprotocol.com/*"
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; connect-src https://attest.humanpresenceprotocol.com; script-src 'self'; style-src 'self' 'unsafe-inline'"
+  },
+
+  "_content_security_policy_dev": "For local development, use: connect-src https://attest.humanpresenceprotocol.com http://127.0.0.1:9443 — never ship localhost in production manifest.",
+
+  "web_accessible_resources": [{
+    "resources": ["icons/*.png"],
+    "matches": ["<all_urls>"]
+  }],
+
+  "minimum_chrome_version": "120"
+}

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HPP Demo — Human Presence Protocol</title>
+
+  <!-- HPP enrollment declaration -->
+  <!-- In production this callback points to your backend -->
+  <meta name="hpp-enrollment" content="request"
+        data-hpp-callback="http://localhost:9443/hpp/demo-callback"
+        data-hpp-site-name="HPP Protocol Demo">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #F4F6FA;
+      color: #333333;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: #1B3A6B;
+      padding: 14px 40px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .topbar-badge {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #B8860B;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .topbar-badge svg { width: 20px; height: 20px; }
+    .topbar-name  { color: #ffffff; font-size: 16px; font-weight: bold; }
+    .topbar-sub   { color: #8ca8d4; font-size: 12px; margin-top: 2px; }
+    .topbar-right { margin-left: auto; }
+    .ext-status   {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px; font-weight: bold;
+      background: rgba(255,255,255,0.12); color: #c8d4e8;
+    }
+    .ext-dot { width: 8px; height: 8px; border-radius: 50%; background: #666; }
+    .ext-dot.present { background: #4ade80; }
+
+    /* ── Layout ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .hero {
+      text-align: center;
+      padding: 48px 0 40px;
+    }
+    .hero h1 { font-size: 34px; color: #1B3A6B; margin-bottom: 12px; }
+    .hero p  { font-size: 16px; color: #555555; max-width: 560px; margin: 0 auto; line-height: 1.7; }
+
+    /* ── Demo grid ── */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 40px;
+    }
+    @media (max-width: 680px) { .demo-grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 2px 16px rgba(27,58,107,0.09);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 18px 24px 16px;
+      border-bottom: 2px solid #B8860B;
+      background: #EEF2FB;
+    }
+    .card-title { font-size: 15px; font-weight: bold; color: #1B3A6B; }
+    .card-desc  { font-size: 12px; color: #777777; margin-top: 3px; }
+    .card-body  { padding: 24px; }
+
+    /* ── Verify button ── */
+    .verify-btn {
+      width: 100%;
+      padding: 16px;
+      background: #1B3A6B;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-family: Georgia, serif;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: background 0.15s;
+      margin-bottom: 14px;
+    }
+    .verify-btn:hover   { background: #142d54; }
+    .verify-btn:disabled { background: #8a9fc2; cursor: not-allowed; }
+    .verify-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .btn-sub {
+      text-align: center; font-size: 12px; color: #888888;
+    }
+
+    /* ── State panels ── */
+    .state-panel { display: none; }
+    .state-panel.visible { display: block; }
+
+    .state-waiting {
+      text-align: center;
+      padding: 20px 0 10px;
+      color: #1B3A6B;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #d0d8e8;
+      border-top-color: #1B3A6B;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .state-success {
+      padding: 16px;
+      background: #F0FAF4;
+      border: 1px solid #a3d9b8;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    .success-badge {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .check-icon {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #1A6B3A;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .check-icon svg { width: 16px; height: 16px; }
+    .success-title { font-size: 15px; font-weight: bold; color: #1A6B3A; }
+    .success-sub   { font-size: 12px; color: #2d8a50; margin-top: 2px; }
+
+    .state-error {
+      padding: 14px;
+      background: #FFF3F3;
+      border: 1px solid #f0c0c0;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 13px; color: #8B1A1A;
+    }
+
+    /* ── Receipt inspector ── */
+    .receipt-label {
+      font-size: 12px; font-weight: bold; color: #555555;
+      margin: 16px 0 6px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .copy-btn {
+      font-size: 11px; background: none; border: 1px solid #d0d8e8;
+      border-radius: 4px; padding: 2px 8px; cursor: pointer;
+      font-family: Georgia, serif; color: #1B3A6B;
+    }
+    .copy-btn:hover { background: #EEF2FB; }
+    .receipt-box {
+      background: #1a1a2e;
+      border-radius: 6px;
+      padding: 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #c8d4e8;
+      overflow-x: auto;
+      white-space: pre;
+      max-height: 240px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .json-key   { color: #8ca8d4; }
+    .json-str   { color: #a8d4a8; }
+    .json-num   { color: #d4c8a8; }
+    .json-bool  { color: #d4a8c8; }
+
+    /* ── Protected content card ── */
+    .locked-content {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+    .lock-overlay {
+      position: absolute; inset: 0;
+      background: rgba(244,246,250,0.92);
+      backdrop-filter: blur(3px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px;
+      border-radius: 8px;
+      transition: opacity 0.4s;
+      z-index: 2;
+    }
+    .lock-overlay.unlocked { opacity: 0; pointer-events: none; }
+    .lock-icon { font-size: 32px; }
+    .lock-msg  { font-size: 14px; color: #555555; text-align: center; max-width: 200px; }
+
+    .protected-inner { padding: 20px; }
+    .protected-inner h3 { font-size: 15px; color: #1B3A6B; margin-bottom: 10px; }
+    .protected-inner p  { font-size: 13px; color: #555555; line-height: 1.6; }
+    .secret-data {
+      margin-top: 14px;
+      padding: 12px;
+      background: #EEF2FB;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #1B3A6B;
+    }
+
+    /* ── Receipt field table ── */
+    .field-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+    .field-table td { padding: 6px 8px; border-bottom: 1px solid #f0f4fa; vertical-align: top; }
+    .field-table td:first-child { color: #888888; white-space: nowrap; width: 140px; }
+    .field-table td:last-child  { color: #1B3A6B; font-family: 'Courier New', monospace; word-break: break-all; }
+    .field-table tr:last-child td { border-bottom: none; }
+    .uv-true  { color: #1A6B3A; font-weight: bold; }
+    .uv-false { color: #8B1A1A; font-weight: bold; }
+
+    /* ── Timeline ── */
+    .timeline { margin-top: 6px; }
+    .tl-step {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 8px 0;
+      position: relative;
+    }
+    .tl-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 11px; top: 28px;
+      width: 2px; height: calc(100% - 8px);
+      background: #d0d8e8;
+    }
+    .tl-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #EEF2FB; border: 2px solid #d0d8e8;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: bold; color: #1B3A6B;
+      flex-shrink: 0; position: relative; z-index: 1;
+    }
+    .tl-num.done { background: #1A6B3A; border-color: #1A6B3A; color: #ffffff; }
+    .tl-num.active { background: #1B3A6B; border-color: #1B3A6B; color: #ffffff; }
+    .tl-label { font-size: 13px; color: #555555; padding-top: 3px; line-height: 1.4; }
+    .tl-label strong { color: #1B3A6B; display: block; }
+    .tl-time  { margin-left: auto; font-size: 11px; color: #aaaaaa; padding-top: 4px; white-space: nowrap; }
+
+    /* ── No extension banner ── */
+    .no-ext-banner {
+      display: none;
+      background: #FFFBEB;
+      border: 1px solid #f0d060;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 13px; color: #7a5f00;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .no-ext-banner.hidden { display: none; }
+    .no-ext-banner a { color: #1B3A6B; font-weight: bold; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center; margin-top: 60px;
+      font-size: 12px; color: #aaaaaa;
+    }
+    .footer a { color: #1B3A6B; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="7" r="4"/>
+      <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>
+    </svg>
+  </div>
+  <div>
+    <div class="topbar-name">HPP Protocol Demo</div>
+    <div class="topbar-sub">Human Presence Protocol · agileontarget.com</div>
+  </div>
+  <div class="topbar-right">
+    <div class="ext-status" id="ext-status">
+      <div class="ext-dot" id="ext-dot"></div>
+      <span id="ext-label">Checking extension…</span>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Extension not installed warning -->
+  <div class="no-ext-banner hidden" id="no-ext-banner">
+    ⚠️ The HPP extension is not installed.
+    <a href="https://chrome.google.com/webstore" target="_blank">Install from Chrome Web Store</a>
+    to run this demo.
+  </div>
+
+  <div class="hero">
+    <h1>Verify Human Presence</h1>
+    <p>This page demonstrates a complete HPP authentication flow. Click the button below to trigger hardware-bound presence verification — no password, no CAPTCHA.</p>
+  </div>
+
+  <div class="demo-grid">
+
+    <!-- LEFT: Verify card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Step 1 — Presence Gate</div>
+        <div class="card-desc">Hardware-bound biometric verification via WebAuthn</div>
+      </div>
+      <div class="card-body">
+
+        <!-- Default: verify button -->
+        <div id="panel-default">
+          <button class="verify-btn" id="btn-verify" onclick="triggerVerify()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2z"/>
+              <path d="M6 21v-1a6 6 0 0 1 12 0v1"/>
+              <path d="M9 11l2 2 4-4"/>
+            </svg>
+            Verify Your Presence
+          </button>
+          <div class="btn-sub">Touch ID · Face ID · Windows Hello · No password required</div>
+        </div>
+
+        <!-- Waiting state -->
+        <div class="state-panel" id="panel-waiting">
+          <div class="state-waiting">
+            <div class="spinner"></div>
+            <div style="font-size:14px;font-weight:bold;">Waiting for biometric…</div>
+            <div style="font-size:12px;color:#888;margin-top:4px;">Use Touch ID, Face ID, or Windows Hello</div>
+          </div>
+        </div>
+
+        <!-- Success state -->
+        <div class="state-panel" id="panel-success">
+          <div class="state-success">
+            <div class="success-badge">
+              <div class="check-icon">
+                <svg viewBox="0 0 16 16" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M3 8l3.5 3.5L13 4"/>
+                </svg>
+              </div>
+              <div>
+                <div class="success-title">Presence Verified</div>
+                <div class="success-sub" id="success-time">—</div>
+              </div>
+            </div>
+            <table class="field-table" id="receipt-fields"></table>
+          </div>
+          <button class="verify-btn" style="margin-top:14px;background:#F4F6FA;color:#1B3A6B;font-size:13px;" onclick="resetDemo()">
+            Verify Again
+          </button>
+        </div>
+
+        <!-- Error state -->
+        <div class="state-panel" id="panel-error">
+          <div class="state-error" id="error-msg">Verification failed.</div>
+          <button class="verify-btn" style="margin-top:12px;background:#F4F6FA;color:#1B3A6B;font-size:13px;" onclick="resetDemo()">
+            Try Again
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Protocol flow timeline -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Step 2 — Protocol Flow</div>
+        <div class="card-desc">Live timeline of the 10-step HPP authentication sequence</div>
+      </div>
+      <div class="card-body">
+        <div class="timeline" id="timeline">
+          <div class="tl-step"><div class="tl-num" id="tl-1">1</div><div class="tl-label"><strong>Page load detected</strong>HPP extension checks for enrollment meta tag</div><div class="tl-time" id="tt-1">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-2">2</div><div class="tl-label"><strong>Challenge requested</strong>Service worker fetches server-authoritative challenge</div><div class="tl-time" id="tt-2">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-3">3</div><div class="tl-label"><strong>Challenge verified</strong>Signature checked against pinned server key</div><div class="tl-time" id="tt-3">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-4">4</div><div class="tl-label"><strong>Presence Gate shown</strong>Shadow DOM overlay injected above login form</div><div class="tl-time" id="tt-4">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-5">5</div><div class="tl-label"><strong>Biometric gesture</strong>WebAuthn credentials.get() — TEE activated, UV=1</div><div class="tl-time" id="tt-5">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-6">6</div><div class="tl-label"><strong>Assertion returned</strong>Hardware-signed assertion from platform authenticator</div><div class="tl-time" id="tt-6">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-7">7</div><div class="tl-label"><strong>UV flag confirmed</strong>Bit 2 of authenticator flags verified before proceeding</div><div class="tl-time" id="tt-7">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-8">8</div><div class="tl-label"><strong>Certificate submitted</strong>Service worker POSTs to HPP Attestation Server</div><div class="tl-time" id="tt-8">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-9">9</div><div class="tl-label"><strong>Certificate countersigned</strong>Server verifies assertion, issues hpp_server_sig</div><div class="tl-time" id="tt-9">—</div></div>
+          <div class="tl-step"><div class="tl-num" id="tl-10">10</div><div class="tl-label"><strong>Session established</strong>Certificate relayed to RP — page receives cert_id only</div><div class="tl-time" id="tt-10">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM LEFT: Presence Certificate Inspector -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Presence Certificate
+          <span style="display:inline-block;margin-left:8px;padding:2px 8px;background:#FFF3CD;color:#856404;font-size:10px;font-weight:700;border-radius:3px;border:1px solid #FFEEBA;letter-spacing:0.04em;vertical-align:middle;">DEV INSPECTION MODE</span>
+        </div>
+        <div class="card-desc">
+          In production, the full certificate is delivered <strong>only</strong> to the relying party backend via the
+          configured callback — it never enters page JavaScript. This panel mirrors certificate fields from the
+          demo RP callback endpoint for developer verification purposes only.
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="cert-placeholder" style="color:#aaaaaa;font-size:13px;text-align:center;padding:20px 0;">
+          Complete verification above to inspect the certificate.
+        </div>
+        <div id="cert-inspector" style="display:none">
+          <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:4px;padding:7px 10px;margin-bottom:10px;font-size:11px;color:#5D4037;line-height:1.5;">
+            ⚠️ <strong>Demo only.</strong> This data was returned by the demo RP callback at
+            <code>/hpp/demo-callback</code> for inspection. A production relying party would consume
+            this payload server-side only. Page-visible fields: <code>cert_id</code>, <code>rp_id</code>,
+            <code>expiry_ms</code>, and verification status.
+          </div>
+          <div class="receipt-label">
+            Presence Certificate (JSON) — RP callback mirror
+            <button class="copy-btn" onclick="copyCert()">Copy</button>
+          </div>
+          <div class="receipt-box" id="cert-json"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM RIGHT: Protected content -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Protected Content</div>
+        <div class="card-desc">Unlocked when presence is verified — no account required</div>
+      </div>
+      <div class="card-body" style="padding:0;position:relative;">
+        <div class="locked-content">
+          <div class="lock-overlay" id="lock-overlay">
+            <div class="lock-icon">🔒</div>
+            <div class="lock-msg">Verify your presence to unlock this content</div>
+          </div>
+          <div class="protected-inner">
+            <h3>Presence-Gated Resource</h3>
+            <p>This content is only accessible after a valid HPP Presence Certificate has been issued for this session. No account, no password, no CAPTCHA was required — only hardware-bound proof that a human is present.</p>
+            <div class="secret-data" id="secret-data">
+              {<br>
+              &nbsp;&nbsp;"access": "GRANTED",<br>
+              &nbsp;&nbsp;"reason": "HPP_CERT_VALID",<br>
+              &nbsp;&nbsp;"cert_id": "<span id="secret-cert-id">—</span>",<br>
+              &nbsp;&nbsp;"rp_id": "<span id="secret-rp-id">—</span>",<br>
+              &nbsp;&nbsp;"expires": "<span id="secret-expiry">—</span>"<br>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /demo-grid -->
+
+  <div class="footer">
+    HPP Demo · <a href="https://agileontarget.com" target="_blank">agileontarget.com</a> ·
+    Patent Pending · Agile On Target LLC · Charlotte NC ·
+    Mock server must be running at <code>http://localhost:9443</code>
+  </div>
+</div>
+
+<!-- HPP SDK — must load before the demo script block below -->
+<script src="hpp-api.js"></script>
+
+<script>
+ *
+ * This script IS the integration example. Every call goes through:
+ *   HPP.requestPresence()
+ *   HPP.getSession()
+ *   HPP.on(event, handler)
+ *   HPP.invalidateSession()
+ *
+ * SECURITY INVARIANT: No full certificate material reaches this page.
+ * cert_id, rp_id, and expiry_ms are the only certificate fields the page sees.
+ * Full certificate travels: Extension → Verifier Server → RP Backend only.
+ */
+
+const t0 = Date.now();
+const stepTimes = {};
+let   demoReceipt = null;  // holds only { cert_id, rp_id, expiry_ms } — summary only
+
+// ── Wire HPP SDK event handlers ───────────────────────────────────────────────
+
+HPP.on('ready', () => {
+  document.getElementById('ext-dot').classList.add('present');
+  document.getElementById('ext-label').textContent = 'HPP Extension Active';
+  document.getElementById('no-ext-banner').classList.add('hidden');
+  markTimeline(1, 'done', Date.now());
+
+  // On page load, check for an existing valid session (Scenario 2: returning user).
+  HPP.getSession().then(session => {
+    if (session) onVerifySuccess(session);
+  });
+});
+
+HPP.on('verified', (result) => {
+  // result = { verified, cert_id, rp_id, expiry_ms } — summary only.
+  // Full certificate already delivered to RP backend via the callback endpoint.
+  onVerifySuccess(result);
+});
+
+HPP.on('error', ({ code, message }) => {
+  showPanel('error');
+  document.getElementById('error-msg').textContent =
+    message || 'Verification failed. Please try again.';
+});
+
+// Timeline step events fired by the extension (hpp-protocol-step custom event)
+document.addEventListener('hpp-protocol-step', (e) => {
+  const { step, status } = e.detail || {};
+  if (step) markTimeline(step, status || 'done', Date.now());
+});
+
+// After 2s, if no extension signal, show install banner
+setTimeout(() => {
+  if (!HPP.debug().extension_ready) {
+    document.getElementById('ext-label').textContent = 'Extension not detected';
+    document.getElementById('no-ext-banner').classList.remove('hidden');
+  }
+}, 2000);
+
+setTimeout(() => markTimeline(1, 'active', Date.now()), 100);
+
+// ── Demo trigger ──────────────────────────────────────────────────────────────
+
+async function triggerVerify() {
+  showPanel('waiting');
+  markTimeline(2, 'active', Date.now());
+
+  [2, 3, 4, 5].forEach((step, i) =>
+    setTimeout(() => markTimeline(step, 'active', Date.now()), i * 400)
+  );
+
+  try {
+    // Canonical SDK call — this is all a real integration needs.
+    await HPP.requestPresence();
+    // onVerifySuccess fires via HPP.on('verified') above.
+  } catch (err) {
+    if (err.code === 'HPP_EXTENSION_NOT_FOUND') {
+      showPanel('error');
+      document.getElementById('error-msg').textContent =
+        'HPP extension not detected. Install from the Chrome Web Store to run this demo.';
+    }
+    // Other errors surface via HPP.on('error').
+  }
+}
+
+// ── Success handler ───────────────────────────────────────────────────────────
+
+function onVerifySuccess(result) {
+  // PresenceResult or SessionSummary — same safe field subset either way.
+  // INVARIANT: only cert_id, rp_id, expiry_ms (+ remaining_ms for sessions).
+  demoReceipt = {
+    cert_id:   result.cert_id,
+    rp_id:     result.rp_id,
+    expiry_ms: result.expiry_ms,
+  };
+
+  [5,6,7,8,9,10].forEach((step, i) =>
+    setTimeout(() => markTimeline(step, 'done', Date.now()), i * 80)
+  );
+
+  // Receipt table — only page-safe fields
+  const fields = [
+    ['cert_id',         result.cert_id.substring(0, 12) + '…'],
+    ['rp_id',           result.rp_id],
+    ['expires',         new Date(result.expiry_ms).toLocaleTimeString()],
+    ['uv_flag',         '✓ true (UV=1 — enforced by verifier)'],
+    ['hpp_server_sig',  '[delivered to RP backend only]'],
+    ['assertion_sig',   '[ECDSA P-256 · hardware-bound · not transmitted to page]'],
+  ];
+  const tbody = document.getElementById('receipt-fields');
+  tbody.innerHTML = fields.map(([k, v]) =>
+    '<tr><td>' + k + '</td><td class="' + (k === 'uv_flag' ? 'uv-true' : '') + '">' + v + '</td></tr>'
+  ).join('');
+
+  document.getElementById('success-time').textContent =
+    'Verified at ' + new Date().toLocaleTimeString();
+  showPanel('success');
+
+  displayCert(demoReceipt);
+
+  document.getElementById('lock-overlay').classList.add('unlocked');
+  document.getElementById('secret-cert-id').textContent = result.cert_id.substring(0, 12) + '…';
+  document.getElementById('secret-rp-id').textContent   = result.rp_id;
+  document.getElementById('secret-expiry').textContent  = new Date(result.expiry_ms).toLocaleTimeString();
+}
+
+// ── Reset (Scenario 3 entry point from UI) ────────────────────────────────────
+
+function resetDemo() {
+  demoReceipt = null;
+  HPP.invalidateSession();   // canonical SDK call
+
+  document.getElementById('receipt-fields').innerHTML = '';
+  document.getElementById('cert-inspector').style.display = 'none';
+  document.getElementById('cert-placeholder').style.display = 'block';
+  document.getElementById('lock-overlay').classList.remove('unlocked');
+  ['default','success','error','waiting'].forEach(p =>
+    document.getElementById('panel-' + p).classList.remove('visible')
+  );
+  document.getElementById('panel-default').style.display = 'block';
+  for (let i = 1; i <= 10; i++) {
+    const el = document.getElementById('tl-' + i);
+    if (el) el.className = 'tl-num';
+    const tt = document.getElementById('tt-' + i);
+    if (tt) tt.textContent = '—';
+  }
+  markTimeline(1, HPP.debug().extension_ready ? 'done' : 'active', Date.now());
+}
+
+// ── Cert inspector ────────────────────────────────────────────────────────────
+// Shows only page-safe summary fields. The inspector panel carries the
+// DEV INSPECTION MODE label explaining the RP callback mirror contract.
+
+function displayCert(cert) {
+  document.getElementById('cert-placeholder').style.display = 'none';
+  document.getElementById('cert-inspector').style.display = 'block';
+
+  const pageSafeFields = {
+    cert_id:    cert.cert_id,
+    rp_id:      cert.rp_id,
+    expiry_ms:  cert.expiry_ms,
+    _note:      'Full certificate delivered to RP backend via callback only.',
+    _sig_note:  'hpp_server_sig, assertion_sig, credential_id not transmitted to page.',
+  };
+
+  document.getElementById('cert-json').innerHTML = syntaxHighlight(
+    JSON.stringify(pageSafeFields, null, 2)
+  );
+}
+
+function syntaxHighlight(json) {
+  return json
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\u[a-zA-Z0-9]{4}|\[^u]|[^\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+      var cls = 'json-num';
+      if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-str';
+      else if (/true|false/.test(match)) cls = 'json-bool';
+      return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
+
+function copyCert() {
+  if (!demoReceipt) return;
+  navigator.clipboard.writeText(JSON.stringify(demoReceipt, null, 2))
+    .then(() => {
+      var btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+    });
+}
+
+// ── Panel + timeline helpers ──────────────────────────────────────────────────
+
+function showPanel(name) {
+  ['default','waiting','success','error'].forEach(p =>
+    document.getElementById('panel-' + p).classList.remove('visible')
+  );
+  document.getElementById('panel-' + name).classList.add('visible');
+}
+
+function markTimeline(step, status, ts) {
+  var el = document.getElementById('tl-' + step);
+  var tt = document.getElementById('tt-' + step);
+  if (!el) return;
+  el.className = 'tl-num ' + status;
+  if (!stepTimes[step]) {
+    stepTimes[step] = ts;
+    if (tt) tt.textContent = '+' + (ts - t0) + 'ms';
+  }
+}
+</script>
+</body>
+</html>

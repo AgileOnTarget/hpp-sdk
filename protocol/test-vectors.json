@@ -1,0 +1,96 @@
+{
+  "format_version": 1,
+  "generated_utc": "2026-02-06T00:00:00Z",
+  "purpose": "Provides deterministic cryptographic test vectors for HPP receipt and ledger entry canonical string construction, hashing, and signature verification.",
+  "stability_statement": "This file represents a stable MVP reference for receipt and ledger signing.",
+  "timestamp_semantics": "All timestamps are UNIX epoch seconds in UTC.",
+  "negative_test_vectors_note": "Any single-byte change in canonical_string MUST cause verification failure. See receipt_v1_negative_example_01.",
+  "verification_procedure": [
+    "Reconstruct the canonical string from structured fields using UTF-8, LF newlines, fixed field order, and a final newline.",
+    "Compute SHA-256 over the canonical string bytes.",
+    "Compare the resulting digest to the sha256.hex and sha256.base64 values in the vector.",
+    "Verify the Ed25519 signature over the 32-byte SHA-256 digest using the referenced public key."
+  ],
+  "key_management_notes": {
+    "test_keys_only": "All keys in this file are for testing only and MUST NOT be used in production.",
+    "production_requirement": "Production systems must generate and use unique verifier keypairs.",
+    "key_id_resolution": "key_id values map to entries in a trusted public key registry maintained by the verifier."
+  },
+  "notes": [
+    "All canonical strings use UTF-8, LF newlines, fixed field order, and include a final newline.",
+    "sha256 is computed over the canonical string bytes.",
+    "ed25519 signatures in this file are computed over the 32-byte sha256 digest, not over the raw canonical string."
+  ],
+  "algorithms": {
+    "hash": "SHA-256",
+    "signature_suites": [
+      {
+        "suite_id": "ed25519_over_sha256",
+        "sign_input": "sha256_digest_bytes",
+        "signature_encoding": "base64",
+        "public_key_encoding": "base64_raw_32",
+        "private_key_encoding": "hex_seed_32"
+      }
+    ]
+  },
+  "keys": {
+    "ed25519_test_key_1": {
+      "suite_id": "ed25519_over_sha256",
+      "private_key_seed_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "public_key_base64": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg="
+    }
+  },
+  "vectors": [
+    {
+      "id": "receipt_v1_example_01",
+      "object": "hpp_receipt_v1",
+      "canonical_string": "hpp_receipt_v1\nreceipt_version=1\nreceipt_id=rcpt_01HPP9K8ABC123\nreceipt_type=pulse_accept\nstatus=accepted\ndevice_public_key=BASE64PUBKEY_EXAMPLE\nepoch_id=2026-02-06\nnonce=NONCE123_EXAMPLE\nissued_at=1760142331\nclient_confirmed_at=1760142325\nsubmit_received_at=1760142327\nverifier_time=1760142328\nstrict_window_seconds=60\nverifier_base_url=https://api.hpp.example\nsite_origin=https://demo.cloche.com\nscore_after=124\ncredits_after=37\ndelta_credits=1\nprev_receipt_hash=\nverifier_key_id=vkey_2026_01\n",
+      "sha256": {
+        "hex": "2984262b66641f6271a249bdc1172c860e1aac9507d16f39b0b95ad0adb9e00a",
+        "base64": "KYQmK2ZkH2Jxokm9wRcshg4arJUH0W85sLla0K254Ao="
+      },
+      "signature": {
+        "suite_id": "ed25519_over_sha256",
+        "key_id": "ed25519_test_key_1",
+        "signed": "sha256",
+        "signature_base64": "aMmTl0c5104MgJeCHhSAXuEJIKNqWtNrivP62EqoExjw7j73naxpEzhvaUq7UW07QAGEM8Xx60mZltr1AQpVDQ=="
+      }
+    },
+    {
+      "id": "ledger_entry_v1_example_01",
+      "object": "hpp_ledger_v1",
+      "canonical_string": "hpp_ledger_v1\nledger_id=ledger_demo_01\ndevice_public_key=BASE64PUBKEY_EXAMPLE\nentry_version=1\nentry_index=12\nprev_entry_hash=m0Yx_prev_hash_example\nentry_time=1760142331\nevent_type=receipt_accepted\nevent_id=Q2fJ9y0l4VQfPq3pV9rV3A==\nepoch_id=2026-02-06\ndelta_credits=1\ncached_credits_after=37\ncached_score_after=124\nverifier_receipt_hash=KYQmK2ZkH2Jxokm9wRcshg4arJUH0W85sLla0K254Ao=\nverifier_receipt_id=rcpt_01HPP9K8ABC123\nsite_origin=\nverifier_base_url=https://api.hpp.example\nnote=\n",
+      "sha256": {
+        "hex": "7efae6b35a322e0750db2694918e919f467da4aba61efd66100d97a2f9b87c7d",
+        "base64": "fvrms1oyLgdQ2yaUkY6Rn0Z9pKumHv1mEA2Xovm4fH0="
+      },
+      "signature": {
+        "suite_id": "ed25519_over_sha256",
+        "key_id": "ed25519_test_key_1",
+        "signed": "sha256",
+        "signature_base64": "CIlPTfhfTI2lVBzQbCC0nE8l+nP7LqO69wlJazIGgop24ybyVwGBCMGP63sq8s1i+ahuUqOFAtcBye/zAklxDg=="
+      }
+    },
+    {
+      "id": "receipt_v1_negative_example_01",
+      "object": "hpp_receipt_v1",
+      "description": "Altered score_after from 124 to 125. Original signature MUST NOT verify against this canonical string.",
+      "expected_verification_result": "fail",
+      "altered_field": "score_after",
+      "original_value": "124",
+      "altered_value": "125",
+      "canonical_string": "hpp_receipt_v1\nreceipt_version=1\nreceipt_id=rcpt_01HPP9K8ABC123\nreceipt_type=pulse_accept\nstatus=accepted\ndevice_public_key=BASE64PUBKEY_EXAMPLE\nepoch_id=2026-02-06\nnonce=NONCE123_EXAMPLE\nissued_at=1760142331\nclient_confirmed_at=1760142325\nsubmit_received_at=1760142327\nverifier_time=1760142328\nstrict_window_seconds=60\nverifier_base_url=https://api.hpp.example\nsite_origin=https://demo.cloche.com\nscore_after=125\ncredits_after=37\ndelta_credits=1\nprev_receipt_hash=\nverifier_key_id=vkey_2026_01\n",
+      "sha256": {
+        "hex": "245d14e92a7f560af745e3fb664bf926cdb623a0178f656807a387d2c22ec8d4",
+        "base64": "JF0U6Sp/Vgr3ReP7Zkv5Js22I6AXj2VoB6OH0sIuyNQ="
+      },
+      "signature": {
+        "suite_id": "ed25519_over_sha256",
+        "key_id": "ed25519_test_key_1",
+        "signed": "sha256",
+        "signature_base64": "aMmTl0c5104MgJeCHhSAXuEJIKNqWtNrivP62EqoExjw7j73naxpEzhvaUq7UW07QAGEM8Xx60mZltr1AQpVDQ==",
+        "note": "This is the ORIGINAL signature from receipt_v1_example_01. It MUST fail verification against the altered canonical string."
+      }
+    }
+  ]
+}

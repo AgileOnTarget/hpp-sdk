@@ -1,0 +1,68 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+* 2.*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+*.tgz
+.npm
+
+# Swift / Xcode (for Phase 2)
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata
+Package.resolved
+
+# Chrome extension build artifacts
+chrome-extension/dist/
+chrome-extension/*.zip
+chrome-extension/build/
+
+# Website SDK build artifacts (Phase 2)
+website/dist/
+website/build/
+
+# Environment / secrets — NEVER COMMIT
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.json
+config.local.json
+
+# OS-generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Python (in case any tooling shows up)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Logs
+*.log
+logs/

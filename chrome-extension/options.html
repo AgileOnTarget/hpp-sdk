@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HPP Browser Login — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #F4F6FA;
+      color: #333333;
+      min-height: 100vh;
+    }
+    .topbar {
+      background: #1B3A6B;
+      padding: 16px 40px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .topbar-logo {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #B8860B;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .topbar-logo svg { width: 18px; height: 18px; }
+    .topbar-title { color: #ffffff; font-size: 16px; font-weight: bold; }
+    .topbar-sub   { color: #8ca8d4; font-size: 12px; margin-top: 2px; }
+
+    .container { max-width: 680px; margin: 40px auto; padding: 0 24px 60px; }
+
+    .section {
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(27,58,107,0.08);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 16px 24px;
+      border-bottom: 2px solid #B8860B;
+      background: #EEF2FB;
+    }
+    .section-title { font-size: 15px; font-weight: bold; color: #1B3A6B; }
+    .section-desc  { font-size: 12px; color: #777777; margin-top: 3px; }
+
+    .setting-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid #f0f4fa;
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 14px; color: #333333; }
+    .setting-sub   { font-size: 12px; color: #888888; margin-top: 3px; max-width: 460px; line-height: 1.5; }
+
+    .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #cccccc; border-radius: 24px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: #ffffff; border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    input:checked + .toggle-slider { background: #1B3A6B; }
+    input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    select, input[type="text"], input[type="number"] {
+      padding: 7px 12px;
+      border: 1px solid #d0d8e8;
+      border-radius: 6px;
+      font-family: Georgia, serif;
+      font-size: 13px;
+      color: #333333;
+      background: #ffffff;
+      min-width: 160px;
+    }
+    select:focus, input:focus { outline: none; border-color: #1B3A6B; }
+
+    .enrolled-list { padding: 0 24px 16px; }
+    .enrolled-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f4fa;
+    }
+    .enrolled-item:last-child { border-bottom: none; }
+    .enrolled-icon {
+      width: 28px; height: 28px; border-radius: 5px;
+      background: #EEF2FB;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .enrolled-origin { font-size: 13px; color: #333333; flex: 1; }
+    .enrolled-date   { font-size: 11px; color: #aaaaaa; }
+    .enrolled-meta   { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .btn-revoke {
+      padding: 5px 12px;
+      background: #FFF3F3;
+      border: 1px solid #f0c0c0;
+      border-radius: 5px;
+      color: #8B1A1A;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: Georgia, serif;
+      flex-shrink: 0;
+    }
+    .btn-revoke:hover { background: #ffe0e0; }
+
+    .no-sites { padding: 20px 24px; color: #aaaaaa; font-size: 13px; }
+
+    .diag-area {
+      background: #1a1a2e;
+      color: #c8d4e8;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 16px;
+      border-radius: 6px;
+      min-height: 120px;
+      max-height: 240px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      margin: 16px 24px;
+    }
+    .diag-row { display: flex; gap: 12px; margin: 16px 24px; }
+    .btn-sm {
+      padding: 7px 16px;
+      border-radius: 5px;
+      font-family: Georgia, serif;
+      font-size: 12px;
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+    }
+    .btn-navy  { background: #1B3A6B; color: #ffffff; }
+    .btn-light { background: #F4F6FA; border: 1px solid #d0d8e8; color: #1B3A6B; }
+    .btn-sm:hover { opacity: 0.88; }
+
+    .save-toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1A6B3A;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .save-toast.show { opacity: 1; }
+
+    .version-note {
+      text-align: center;
+      font-size: 12px;
+      color: #aaaaaa;
+      margin-top: 32px;
+    }
+    .version-note a { color: #1B3A6B; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="7" r="4"/>
+        <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+    <div>
+      <div class="topbar-title">HPP Browser Login — Settings</div>
+      <div class="topbar-sub">Human Presence Protocol · Agile On Target LLC</div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- General -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">General</div>
+        <div class="section-desc">Core extension behavior</div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">HPP Active</div>
+          <div class="setting-sub">When disabled, the extension will not intercept login forms or show the Presence Gate on any site.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="opt-active"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Certificate Lifetime</div>
+          <div class="setting-sub">How long a Presence Certificate is valid for session reuse. The server may issue a shorter lifetime than this setting if its policy requires it.</div>
+        </div>
+        <select id="opt-lifetime">
+          <option value="1800000">30 minutes</option>
+          <option value="3600000">1 hour</option>
+          <option value="14400000">4 hours</option>
+          <option value="28800000">8 hours</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Privacy -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Privacy</div>
+        <div class="section-desc">Data handling and logging</div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Privacy Mode</div>
+          <div class="setting-sub">Disables all diagnostic logging and telemetry. Certificate metadata is still stored in session memory for session management.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="opt-privacy"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Debug Logging</div>
+          <div class="setting-sub">Writes HPP protocol events to the browser console. Sensitive fields are redacted. Disable in production use.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="opt-debug"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Enrolled Sites -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Enrolled Sites</div>
+        <div class="section-desc">Sites where this device is enrolled for HPP login</div>
+      </div>
+      <div id="enrolled-container">
+        <div class="no-sites">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Advanced -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Advanced</div>
+        <div class="section-desc">Development and debugging options</div>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Server Endpoint Override</div>
+          <div class="setting-sub">Override the HPP Attestation Server URL. Leave blank to use the production server. Set to http://127.0.0.1:9443 to use the local mock server during development.</div>
+        </div>
+        <input type="text" id="opt-server-override" placeholder="https://attest.humanpresenceprotocol.com" style="min-width:280px;font-size:11px;">
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Max Clock Skew (ms)</div>
+          <div class="setting-sub">Maximum tolerated difference between device clock and server clock. Range: 10000–60000. Default: 30000. Overridden by server configuration when available.</div>
+        </div>
+        <input type="number" id="opt-clock-skew" min="10000" max="60000" step="1000" value="30000" style="min-width:120px;">
+      </div>
+    </div>
+
+    <!-- Diagnostics -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Diagnostics</div>
+        <div class="section-desc">Inspect current extension state</div>
+      </div>
+      <div class="diag-row">
+        <button class="btn-sm btn-navy"  id="btn-run-diag">Run Diagnostics</button>
+        <button class="btn-sm btn-light" id="btn-export-diag">Export Diagnostic Log</button>
+        <button class="btn-sm btn-light" id="btn-clear-sessions">Clear All Sessions</button>
+      </div>
+      <div class="diag-area" id="diag-output">Click "Run Diagnostics" to inspect extension state.</div>
+    </div>
+
+    <div class="version-note">
+      HPP Browser Login v<span id="ext-version">—</span> ·
+      <a href="https://agileontarget.com" target="_blank">agileontarget.com</a> ·
+      Patent Pending · Agile On Target LLC
+    </div>
+  </div>
+
+  <div class="save-toast" id="save-toast">Settings saved</div>
+
+  <script src="options.js"></script>
+</body>
+</html>

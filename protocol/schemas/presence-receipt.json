@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id":     "https://agileontarget.com/schemas/presence-receipt-v1.json",
+  "title":   "HPP Presence Certificate",
+  "description": "A signed Presence Certificate issued by the HPP Attestation Server. Delivered by the HPP Chrome Extension service worker directly to the relying party callback endpoint. The page receives only cert_id — not the full certificate.",
+  "version": "1.0",
+
+  "type": "object",
+  "required": [
+    "cert_id",
+    "rp_id",
+    "server_timestamp",
+    "expiry_ms",
+    "credential_id",
+    "authenticator_data",
+    "assertion_sig",
+    "hpp_server_sig"
+  ],
+
+  "properties": {
+
+    "cert_id": {
+      "type":        "string",
+      "format":      "uuid",
+      "description": "UUID v4. Unique identifier for this certificate. Your backend must check this against a replay prevention store and reject any second submission of the same cert_id within the expiry window.",
+      "example":     "a3f8b2c1-4d7e-4f2a-8b1c-9e0d5f3a2b7c"
+    },
+
+    "rp_id": {
+      "type":        "string",
+      "description": "eTLD+1 (registrable domain) of the site the user authenticated to. Must match the WebAuthn rp.id used during enrollment. Verify this equals your own domain before accepting.",
+      "example":     "humanpresenceprotocol.com"
+    },
+
+    "server_timestamp": {
+      "type":        "integer",
+      "description": "Unix timestamp in milliseconds. Authoritative time issued by the HPP Attestation Server. This is the time anchor for the NPHT window — not the client device clock.",
+      "example":     1743100800000
+    },
+
+    "expiry_ms": {
+      "type":        "integer",
+      "description": "Unix timestamp in milliseconds. Certificate is invalid at or after this time. Default lifetime: 3600000ms (1 hour). Re-attestation certificates use 120000ms (2 minutes).",
+      "example":     1743104400000
+    },
+
+    "credential_id": {
+      "type":        "string",
+      "format":      "base64url",
+      "description": "The enrolled platform authenticator credential identifier. Hardware-bound to the user's device (Secure Enclave / TPM). Use this to associate the certificate with a user account in your database.",
+      "example":     "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+    },
+
+    "authenticator_data": {
+      "type":        "string",
+      "format":      "base64url",
+      "description": "Raw WebAuthn authenticatorData bytes. Layout: rpIdHash(32) | flags(1) | signCount(4) | extensions. Bit 2 of flags is the UV (User Verified) flag — must be 1. Bit 0 is UP (User Present).",
+      "example":     "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABg"
+    },
+
+    "assertion_sig": {
+      "type":        "string",
+      "format":      "base64url",
+      "description": "ECDSA P-256 signature over SHA-256(authenticatorData || SHA-256(clientDataJSON)), produced by the platform authenticator's hardware-bound private key inside the TEE. This key never leaves the device.",
+      "example":     "MEYCIQDxk2nVzQpL8m9rBfKwT3hN4vYsX0cA7jR1uOp2dEfGhAIhALm3sQ9wKpV6xY7zN8bC2fT0rH4nM5oP1iUeWaJlDsKw"
+    },
+
+    "hpp_server_sig": {
+      "type":        "string",
+      "format":      "base64url",
+      "description": "ECDSA P-256 countersignature from the HPP Attestation Server over the canonical certificate payload. Sign the payload with keys in alphabetical order and JSON.stringify with no whitespace to reproduce. Verify against the pinned HPP Attestation Server public key.",
+      "example":     "MEUCIQDm4kL9nRpS2xW7vF8hQ3yN0bT5cO6jV1uEpZ3rGdHwIgIA8wXqM4kR7sY2tN9aC5bL0vJ3nF6mH1iUeWoKpBdCsL"
+    },
+
+    "action_scope": {
+      "type":        ["string", "null"],
+      "description": "Present only on re-attestation certificates. Contains the hpp-reauth-action value your backend sent in the 402 trigger response. Must be verified before authorizing high-value actions. Null on standard login certificates.",
+      "example":     "payment-confirm"
+    },
+
+    "uv_flag": {
+      "type":        "boolean",
+      "description": "True if bit 2 (UV) was set in authenticator_data. Extracted by the extension for convenience. Always true for valid HPP certificates — the extension rejects assertions without UV=1 before they reach this point.",
+      "example":     true
+    },
+
+    "sign_count": {
+      "type":        "integer",
+      "description": "Authenticator signature counter. Monotonically increasing. If your stored sign_count is greater than or equal to this value, the assertion may be replayed — reject it.",
+      "example":     42
+    }
+  },
+
+  "examples": [
+    {
+      "_comment":         "Standard login certificate — 1 hour lifetime",
+      "cert_id":          "a3f8b2c1-4d7e-4f2a-8b1c-9e0d5f3a2b7c",
+      "rp_id":            "humanpresenceprotocol.com",
+      "server_timestamp": 1743100800000,
+      "expiry_ms":        1743104400000,
+      "credential_id":    "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+      "authenticator_data": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABg",
+      "assertion_sig":    "MEYCIQDxk2nVzQpL8m9rBfKwT3hN4vYsX0cA7jR1uOp2dEfGhAIhALm3sQ9wKpV6xY7zN8bC2fT0rH4nM5oP1iUeWaJlDsKw",
+      "hpp_server_sig":   "MEUCIQDm4kL9nRpS2xW7vF8hQ3yN0bT5cO6jV1uEpZ3rGdHwIgIA8wXqM4kR7sY2tN9aC5bL0vJ3nF6mH1iUeWoKpBdCsL",
+      "action_scope":     null,
+      "uv_flag":          true,
+      "sign_count":       42
+    },
+    {
+      "_comment":         "Re-attestation certificate — 120 second lifetime, scoped to action",
+      "cert_id":          "f7g8h9i0-1j2k-3l4m-5n6o-7p8q9r0s1t2u",
+      "rp_id":            "humanpresenceprotocol.com",
+      "server_timestamp": 1743104200000,
+      "expiry_ms":        1743104320000,
+      "credential_id":    "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+      "authenticator_data": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABw",
+      "assertion_sig":    "MEQCIGp9rS3wNqL7mF4bK0xV8cH2yT5nO6jU1vDpZ4rGuIfwAiALk2sP8wMpV3xY6zN7aC4bL0vJ2nE5mH9iTeWoKpBdCsRt",
+      "hpp_server_sig":   "MEYCIQCn5lM0oRpQ2xW7vF8hQ3yN0bT5cO6jV1uEpZ3rGdHwIhAP8xXqM4kR7sY2tN9aC5bL0vJ3nF6mH1iUeWoKpBdCsLm",
+      "action_scope":     "payment-confirm",
+      "uv_flag":          true,
+      "sign_count":       43
+    }
+  ],
+
+  "verification_procedure": {
+    "description": "Steps your backend must execute on every certificate before issuing a session. All steps required.",
+    "steps": [
+      {
+        "step":        1,
+        "check":       "Signature verification",
+        "detail":      "Verify hpp_server_sig is a valid ECDSA P-256 signature over canonical payload. Canonical payload: JSON.stringify of the certificate object with only these keys in alphabetical order: assertion_sig, authenticator_data, cert_id, credential_id, expiry_ms, rp_id, server_timestamp. No extra whitespace.",
+        "failure_code":"CERT_SIG_INVALID"
+      },
+      {
+        "step":        2,
+        "check":       "rp_id match",
+        "detail":      "rp_id in certificate must exactly equal the eTLD+1 of your site as configured in your HppVerifier instance.",
+        "failure_code":"RP_MISMATCH"
+      },
+      {
+        "step":        3,
+        "check":       "Expiry",
+        "detail":      "expiry_ms must be greater than Date.now() at the moment your callback handler runs.",
+        "failure_code":"CERT_EXPIRED"
+      },
+      {
+        "step":        4,
+        "check":       "UV flag",
+        "detail":      "Bit 2 of the flags byte at offset 32 of authenticator_data must be 1. The extension enforces this before submission, but your backend should verify independently.",
+        "failure_code":"UV_FLAG_MISSING"
+      },
+      {
+        "step":        5,
+        "check":       "Replay prevention",
+        "detail":      "cert_id must not exist in your replay prevention store. After acceptance, write cert_id with TTL = max(0, expiry_ms - Date.now()).",
+        "failure_code":"ALREADY_USED"
+      },
+      {
+        "step":        6,
+        "check":       "action_scope (re-attestation only)",
+        "detail":      "If validating a re-attestation certificate, action_scope must match the hpp-reauth-action value your backend issued in the 402 trigger response.",
+        "failure_code":"ACTION_SCOPE_MISMATCH"
+      }
+    ]
+  },
+
+  "canonical_signing_example": {
+    "description": "How to reproduce the signed payload for manual hpp_server_sig verification.",
+    "code_node_js": [
+      "const payload = JSON.stringify({",
+      "  assertion_sig:      cert.assertion_sig,",
+      "  authenticator_data: cert.authenticator_data,",
+      "  cert_id:            cert.cert_id,",
+      "  credential_id:      cert.credential_id,",
+      "  expiry_ms:          cert.expiry_ms,",
+      "  rp_id:              cert.rp_id,",
+      "  server_timestamp:   cert.server_timestamp",
+      "});  // Keys sorted alphabetically — no extra whitespace",
+      "",
+      "const isValid = await crypto.subtle.verify(",
+      "  { name: 'ECDSA', hash: 'SHA-256' },",
+      "  hppPublicKey,",
+      "  base64urlToBuffer(cert.hpp_server_sig),",
+      "  new TextEncoder().encode(payload)",
+      ");"
+    ]
+  }
+}
