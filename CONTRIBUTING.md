@@ -48,9 +48,17 @@ The protocol invariants (HPP-PRES, NPHT, Biometric Burn, CCM, H-Constant) are th
 
 Be technical, be honest, be brief. Disagree about engineering decisions on the merits, with citations. Do not personalize disagreements. The maintainers reserve the right to remove contributions or contributors that do not adhere to this norm.
 
-## Patent / commercial licensing
+## Contributor License Agreement — required
 
-Contributions are accepted under [Apache 2.0](LICENSE), which includes a contributor patent grant for the contribution itself. Commercial use of the broader HPP architecture is governed separately — see [`PATENT-NOTICE.md`](PATENT-NOTICE.md).
+All contributions are accepted **only** under the [Contributor License Agreement](CLA.md). By opening a pull request or otherwise submitting a contribution, you agree to grant Agile On Target LLC a perpetual copyright license and a patent license to your contribution, and you represent that you have the right to grant those licenses. Submitting a PR is the sign — no separate signature is required for individual contributors.
+
+If you are contributing on behalf of an organization with an active IP assignment policy, include the following one-liner in the PR description:
+
+> I am authorized to submit this Contribution on behalf of [Organization Name] under the terms of the CLA at CLA.md.
+
+## Patent / commercial / trademark licensing
+
+Your contribution is licensed to downstream users under [Apache 2.0](LICENSE). The Apache 2.0 patent grant is narrow — it covers only the patent claims necessarily infringed by the contribution as distributed. Commercial production deployment, OEM embedding, offering HPP as a service, and ground-up reimplementation of the HPP architecture **are not authorized** by the Apache 2.0 license alone and require a **separate written patent license** from Agile On Target LLC (USPTO Customer No. 224891). Trademark use of "HPP" / "Human Presence Protocol" beyond nominative fair use requires a separate trademark license. See [`PATENT-NOTICE.md`](PATENT-NOTICE.md) and [`NOTICE`](../NOTICE) for details.
 
 ## Questions
 
