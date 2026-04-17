@@ -45,14 +45,32 @@ patent license from Agile On Target LLC referencing USPTO Customer No. 224891.
 Trademark Notice
 ================================================================================
 
-"HPP", "Human Presence Protocol", "Reasoned Authentication Demonstration",
-and "RAD" are claimed trademarks of Agile On Target LLC.
+Agile On Target LLC has filed federal service-mark applications with the
+USPTO on the Principal Register for the following marks, all under Class 042
+(authentication services), filed February 17, 2026, filing basis Section
+1(b) intent-to-use:
+
+  Mark                         USPTO Serial No.
+  ----------------------------------------------
+  Human Presence Protocol      99656359
+  HPP                          99656390
+  Proof of Time                99656418
+  Temporal Identity            99656431
+  Presence Proof               99656479
+
+The applications above establish priority filing dates of February 17, 2026
+for each mark under Lanham Act Section 7(c), subject to USPTO examination,
+publication, and (for Section 1(b) filings) filing of a Statement of Use or
+Amendment to Allege Use before registration issues. Until registration
+issues, each mark may be designated with the SM (service mark) or TM
+(trademark) symbol, NOT the (R) symbol.
 
 The Apache License does not grant permission to use the trademarks of
 Agile On Target LLC (Apache 2.0, Section 6). The license to use the code
 under Apache 2.0 does not constitute permission to use the "HPP" or "Human
-Presence Protocol" names in a way that suggests endorsement by, sponsorship
-from, or affiliation with Agile On Target LLC.
+Presence Protocol" names — or any of the other listed marks — in a way that
+suggests endorsement by, sponsorship from, or affiliation with Agile On
+Target LLC.
 
 Forks, derivatives, and re-implementations must use a different product
 name and must not hold themselves out as the "Human Presence Protocol" or

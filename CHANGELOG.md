@@ -4,6 +4,27 @@ All notable changes to this SDK are documented here. The format follows [Keep a 
 
 ---
 
+## [0.1.2] — 2026-04-17 — Filed-trademark citations + Patent Policy + Pulse/RAD corrections
+
+### Added
+- **`PATENT-POLICY.md`** — new file clarifying that the protocol documentation in `protocol/` (OpenAPI, JSON Schema, test vectors, design markdown) is **non-normative for patent grant purposes**. Establishes the two-tier posture (open specification, separately-licensed patents) that mirrors W3C / IETF / 3GPP / ETSI convention. Section-by-section: §1 documentation is descriptive not a patent grant; §2 the Apache 2.0 grant is narrow; §3 industry convention and precedent; §4 specific applications (clean-room implementers, academic research, relying parties, derivative specifications, machine-readable excerpts); §5 what the policy is not; §6 relationship to LICENSE / NOTICE / PATENT-NOTICE / CLA; §7 no legal advice + NC governing law. Written to close the diligence gap an acquirer's counsel would otherwise flag: "does the Apache release of the protocol docs imply a license beyond the code?" — the answer is documented on record now.
+
+### Changed
+- **`NOTICE`** — Trademark Notice section upgraded from "claimed common-law marks" to **filed federal service-mark applications with USPTO serial numbers**. Table added: Human Presence Protocol (Serial 99656359), HPP (99656390), Proof of Time (99656418), Temporal Identity (99656431), Presence Proof (99656479). All Class 042, all filed 2026-02-17, all Section 1(b) intent-to-use. Priority dates under Lanham Act §7(c) established 2026-02-17. Added SM/TM/® usage note: the ® symbol may not be used until a registration certificate issues.
+- **`PATENT-NOTICE.md §4 Trademarks`** — rewritten with the same application table, Lanham Act §7(c) priority-date statement, Symbol usage subsection (no ® before registration), Apache 2.0 exclusion subsection, Forks & reimplementations subsection, and licensing-inquiries subsection that asks correspondents to cite the specific USPTO serial number.
+- **`README.md`** — Trademarks paragraph rewritten with the five filed marks and their serial numbers. File tree updated to list PATENT-NOTICE.md and PATENT-POLICY.md.
+
+### Removed
+- **"Reasoned Authentication Demonstration" and "RAD"** as claimed trademarks. These were incorrectly included in v0.1.1's trademark list; they are not claimed as trademarks and have not been filed as applications. The words may still appear in the codebase and documentation as descriptive terms; no trademark rights are being asserted over them.
+- **"Pulse"** — NOT listed as a trademark, notwithstanding that Agile On Target LLC filed Serial 99656452 for PULSE on 2026-02-17. Pulse Network LLC (40-year-incumbent debit/payment processor with 22+ federal registrations for PULSE in overlapping Class 036/042 authentication services) sent a demand letter on 2026-04-16 through Cowan, Liebowitz & Latman, P.C. requesting withdrawal of Serial 99656452 by 2026-04-30. The application is being withdrawn. PULSE does not belong in this repository's trademark list.
+
+### Rationale
+Two corrections and one clarification. (1) Correction: v0.1.1 listed four trademarks; only two of them (HPP, Human Presence Protocol) were supported by filed applications, and the filings existed but were not cited. v0.1.2 lists the five actually-filed marks with their USPTO serials — a reviewer or acquirer's counsel can verify status independently in TSDR in 30 seconds. (2) Correction: "Pulse" is an active demand-letter matter and must not appear as an AOT mark. "Reasoned Authentication Demonstration" and "RAD" are descriptive protocol terms, not claimed marks. (3) Clarification: the PATENT-POLICY establishes on-record that publication of protocol documentation in this repository is not and has never been a patent grant for independent implementations — closing the one specific gap an acquirer's counsel would otherwise flag in corp-dev diligence.
+
+No rights are added or removed vs. v0.1.1 for the Apache 2.0 grant itself. The upgrades are to specificity (serials replace generic claims), accuracy (Pulse and RAD out), and the on-record clarity of the documentation-vs-code patent distinction.
+
+---
+
 ## [0.1.1] — 2026-04-17 — Patent / trademark / CLA hardening
 
 ### Added
