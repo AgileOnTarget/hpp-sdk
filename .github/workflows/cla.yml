@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Agile On Target LLC
+#
+# CLA Assistant — Contributor License Agreement enforcement for every PR.
+# Uses contributor-assistant/github-action so the signatures ledger is
+# committed to this repository (signatures/version1/cla.json) rather
+# than hosted on a third-party service. This keeps the audit trail in
+# git history under Agile On Target LLC's direct control.
+#
+# How it works:
+# 1. A contributor opens a PR.
+# 2. This workflow comments on the PR with a link to CLA.md and an
+#    instruction to sign by posting a specific comment.
+# 3. The contributor replies: "I have read the CLA Document and I
+#    hereby sign the CLA".
+# 4. The workflow records { github_username, PR number, commit SHA,
+#    CLA version, ISO 8601 timestamp } in signatures/version1/cla.json
+#    and unblocks the PR.
+# 5. Subsequent PRs from the same contributor are auto-approved for
+#    the same CLA version without re-signing.
+# 6. If CLA.md is materially revised, bump the path-to-signatures
+#    directory (version2/) to force fresh consent.
+
+name: CLA Assistant
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, closed, synchronize]
+
+# Explicit least-privilege permissions. The action needs to read PRs,
+# comment on them, update commit statuses, and commit the signatures
+# ledger back to main.
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  CLAssistant:
+    runs-on: ubuntu-latest
+    steps:
+      - name: CLA Assistant
+        if: (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') || github.event_name == 'pull_request_target'
+        uses: contributor-assistant/github-action@v2.3.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Where the signatures ledger lives (committed to main)
+          path-to-signatures: 'signatures/version1/cla.json'
+          # Public link to the CLA document
+          path-to-document: 'https://github.com/AgileOnTarget/hpp-sdk/blob/main/CLA.md'
+          # Branch the signatures commit lands on
+          branch: 'main'
+          # Bots that do not need to sign
+          allowlist: 'dependabot[bot],renovate[bot],github-actions[bot]'
+          # Repo coordinates
+          remote-repository-name: 'hpp-sdk'
+          remote-organization-name: 'AgileOnTarget'
+          # Customized messages the bot posts
+          custom-notsigned-prcomment: |
+            Thank you for your contribution to the Human Presence Protocol SDK.
+
+            Before we can merge, please sign the [Contributor License Agreement](https://github.com/AgileOnTarget/hpp-sdk/blob/main/CLA.md). Under the CLA, Agile On Target LLC receives a perpetual copyright and patent license to your contribution so that the USPTO Customer No. 224891 patent portfolio stays consolidated as the project evolves. You retain all of your own rights in the contribution for your own use.
+
+            To sign, post a comment below containing the **exact text**:
+
+            > I have read the CLA Document and I hereby sign the CLA
+
+            If you are contributing on behalf of an organization with an active IP-assignment policy, your PR description should also include the one-liner specified in CONTRIBUTING.md §"Contributor License Agreement — required".
+
+            After signing, this bot will record your agreement in `signatures/version1/cla.json` and unblock the PR. You will not need to re-sign for subsequent PRs against the current CLA version.
+          custom-pr-sign-comment: 'I have read the CLA Document and I hereby sign the CLA'
+          custom-allsigned-prcomment: |
+            ✓ All contributors have signed the CLA. Agile On Target LLC thanks you for your contribution.
+          # After merge, lock the PR conversation so the signature record is immutable
+          lock-pullrequest-after-merge: true
