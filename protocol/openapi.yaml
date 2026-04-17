@@ -1,0 +1,832 @@
+openapi: 3.1.0
+info:
+  title: Human Presence Protocol Verifier API
+  version: "1.0.0"
+  description: >
+    Stable reference implementation of HPP verifier behavior.
+    This API issues epoch bound nonces, accepts signed pulses, issues verifier signed receipts,
+    and answers continuity threshold queries for relying parties.
+  x-status: Canonical MVP (Beta)
+
+# --- HPP Extension Blocks ---
+
+x-versioning-strategy:
+  description: >
+    API version encoded in base path: /v1/.
+    Backward incompatible changes require new major version.
+    Backward compatible additive changes allowed within same major version.
+    Deprecated fields remain supported for at least one major version.
+
+x-backward-compatibility:
+  description: >
+    Existing fields never change semantic meaning.
+    New optional fields may be added.
+    Fields removed only in next major version.
+
+x-error-codes:
+  E1000: Invalid request format
+  E1001: Invalid signature
+  E1002: Expired challenge
+  E1003: Invalid device public key
+  E1004: Invalid receipt
+  E1005: Replay detected
+  E1006: Rate limit exceeded
+  E1007: Server time unavailable
+  E1008: Internal verification failure
+
+x-rate-limits:
+  /v1/health:
+    limit: 60
+    window: 1 minute
+    scope: per IP
+  /v1/keys:
+    limit: 60
+    window: 1 minute
+    scope: per IP
+  /v1/nonce:
+    limit: 30
+    window: 1 minute
+    scope: per IP
+  /v1/pulse:
+    limit: 30
+    window: 1 minute
+    scope: per device_public_key
+  /v1/status:
+    limit: 60
+    window: 1 minute
+    scope: per IP
+  /v1/verify:
+    limit: 120
+    window: 1 minute
+    scope: per relying_party
+  /v1/enroll:
+    limit: 10
+    window: 1 minute
+    scope: per IP
+  /v1/burn:
+    limit: 30
+    window: 1 minute
+    scope: per device_public_key
+
+x-security-model:
+  description: >
+    Verifier holds Ed25519 signing key.
+    Clients never receive private keys.
+    All receipts are verifier-signed.
+    Relying parties verify receipts offline.
+
+x-determinism:
+  description: >
+    All timestamps returned by verifier MUST be server-time.
+    All receipts MUST include strict_window_seconds.
+    Receipt hashes MUST be reproducible byte-for-byte.
+
+# --- Servers and Tags ---
+
+servers:
+  - url: https://api.hpp.example
+    description: Example verifier base URL
+
+tags:
+  - name: Health
+  - name: Keys
+  - name: Enrollment
+  - name: Nonce
+  - name: Pulse
+  - name: Status
+  - name: Verify
+  - name: Burn
+
+# --- Paths ---
+
+paths:
+  /v1/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /v1/keys:
+    get:
+      tags: [Keys]
+      summary: Get verifier public signing keys
+      operationId: getKeys
+      responses:
+        "200":
+          description: Public keys for verifier signature verification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeysResponse"
+
+  /v1/enroll:
+    post:
+      tags: [Enrollment]
+      summary: Enroll a device public key
+      operationId: postEnroll
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollRequest"
+      responses:
+        "200":
+          description: Enrollment accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/nonce:
+    get:
+      tags: [Nonce]
+      summary: Issue an epoch bound nonce for a device
+      operationId: getNonce
+      parameters:
+        - name: device_public_key
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Base64 encoded device public key
+        - name: site_origin
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Optional relying party origin to bind nonce and receipts
+      responses:
+        "200":
+          description: Nonce issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NonceResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Device not enrolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/pulse:
+    post:
+      tags: [Pulse]
+      summary: Submit a signed Pulse for verification
+      operationId: postPulse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PulseRequest"
+      responses:
+        "200":
+          description: Pulse accepted or rejected with signed receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PulseResponse"
+        "400":
+          description: Invalid request or verification failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Device not enrolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Nonce already used or epoch mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/status/{device_public_key}:
+    get:
+      tags: [Status]
+      summary: Get continuity status and credit balance for a device
+      operationId: getStatus
+      parameters:
+        - name: device_public_key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Base64 encoded device public key
+        - name: site_origin
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Optional relying party origin
+      responses:
+        "200":
+          description: Current status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "404":
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/verify/{device_public_key}:
+    get:
+      tags: [Verify]
+      summary: Verify whether a device meets a continuity threshold
+      operationId: getVerifyThreshold
+      parameters:
+        - name: device_public_key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Base64 encoded device public key
+        - name: threshold
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+          description: Required continuity score threshold
+        - name: site_origin
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Required when site binding is enabled
+        - name: signed
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: If true, include an optional signed assertion object
+      responses:
+        "200":
+          description: Threshold result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/burn:
+    post:
+      tags: [Burn]
+      summary: Burn credits for a relying party action
+      operationId: postBurn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BurnRequest"
+      responses:
+        "200":
+          description: Burn accepted or rejected with signed receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BurnResponse"
+        "400":
+          description: Invalid request or verification failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Device not enrolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Nonce already used or epoch mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+# --- Components ---
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Bearer token for authenticated endpoints.
+        Used for enrollment and administrative operations.
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, verifier_time, service, version]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        verifier_time:
+          type: integer
+          description: Verifier current Unix time
+        service:
+          type: string
+        version:
+          type: string
+
+    KeysResponse:
+      type: object
+      required: [keys]
+      additionalProperties: false
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerifierPublicKey"
+
+    VerifierPublicKey:
+      type: object
+      required: [verifier_key_id, alg, public_key, not_before, not_after]
+      additionalProperties: false
+      properties:
+        verifier_key_id:
+          type: string
+        alg:
+          type: string
+          description: Algorithm identifier, informational
+        public_key:
+          type: string
+          description: Base64 encoded public key
+        not_before:
+          type: integer
+        not_after:
+          type: integer
+
+    EnrollRequest:
+      type: object
+      required: [device_public_key]
+      additionalProperties: false
+      properties:
+        device_public_key:
+          type: string
+          description: Base64 encoded device public key
+        device_attestation:
+          $ref: "#/components/schemas/DeviceAttestation"
+
+    DeviceAttestation:
+      type: object
+      required: [format, payload]
+      additionalProperties: false
+      properties:
+        format:
+          type: string
+          description: Attestation format identifier
+          examples: [apple_attestation_v1]
+        payload:
+          type: string
+          description: Base64 encoded attestation payload
+
+    EnrollResponse:
+      type: object
+      required: [enrolled, device_public_key, enrolled_at, attestation_status, epoch]
+      additionalProperties: false
+      properties:
+        enrolled:
+          type: boolean
+        device_public_key:
+          type: string
+        enrolled_at:
+          type: integer
+        attestation_status:
+          type: string
+          enum: [verified, unverified, unsupported]
+        epoch:
+          $ref: "#/components/schemas/EpochWindow"
+
+    EpochWindow:
+      type: object
+      required: [epoch_id, epoch_start, epoch_end]
+      additionalProperties: false
+      properties:
+        epoch_id:
+          type: string
+          description: UTC epoch identifier, default YYYY-MM-DD
+        epoch_start:
+          type: integer
+          description: Unix seconds epoch start in UTC
+        epoch_end:
+          type: integer
+          description: Unix seconds epoch end in UTC
+        epoch_length_seconds:
+          type: integer
+          description: Epoch length in seconds
+
+    NonceResponse:
+      type: object
+      required:
+        - device_public_key
+        - epoch
+        - nonce
+        - nonce_issued_at
+        - nonce_expires_at
+        - verifier_time
+        - strict_window_seconds
+        - verifier_base_url
+      additionalProperties: false
+      properties:
+        device_public_key:
+          type: string
+        epoch:
+          $ref: "#/components/schemas/EpochWindow"
+        nonce:
+          type: string
+          description: Base64 encoded nonce
+        nonce_issued_at:
+          type: integer
+        nonce_expires_at:
+          type: integer
+        verifier_time:
+          type: integer
+        strict_window_seconds:
+          type: integer
+          minimum: 1
+        verifier_base_url:
+          type: string
+        site_origin:
+          type: string
+          default: ""
+
+    PulseRequest:
+      type: object
+      required:
+        - pulse_version
+        - device_public_key
+        - epoch_id
+        - nonce
+        - client_confirmed_at
+        - issued_at
+        - biometric_success
+        - signature
+      additionalProperties: false
+      properties:
+        pulse_version:
+          type: integer
+          enum: [1]
+        device_public_key:
+          type: string
+        epoch_id:
+          type: string
+        nonce:
+          type: string
+        client_confirmed_at:
+          type: integer
+          description: Unix seconds captured at biometric success
+        issued_at:
+          type: integer
+          description: Unix seconds when client formed submission
+        biometric_success:
+          type: boolean
+        site_origin:
+          type: string
+          default: ""
+        signature:
+          type: string
+          description: Base64 encoded device signature over canonical pulse string
+
+    PulseResponse:
+      type: object
+      required: [status, receipt]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [accepted, rejected]
+        rejection_reason:
+          type: string
+          description: Present when status is rejected
+        receipt:
+          $ref: "#/components/schemas/ReceiptV1"
+
+    StatusResponse:
+      type: object
+      required: [device_public_key, verifier_time, epoch, continuity, credits]
+      additionalProperties: false
+      properties:
+        device_public_key:
+          type: string
+        verifier_time:
+          type: integer
+        epoch:
+          type: object
+          required: [epoch_id]
+          additionalProperties: false
+          properties:
+            epoch_id:
+              type: string
+        continuity:
+          $ref: "#/components/schemas/ContinuityStatus"
+        credits:
+          $ref: "#/components/schemas/CreditsStatus"
+
+    ContinuityStatus:
+      type: object
+      required: [score, last_epoch_id, state, grace_remaining, bleed_active, cliff_epoch_id]
+      additionalProperties: false
+      properties:
+        score:
+          type: integer
+          minimum: 0
+        last_epoch_id:
+          type: string
+        state:
+          type: string
+          enum: [active, abandoned]
+        grace_remaining:
+          type: integer
+          minimum: 0
+        bleed_active:
+          type: boolean
+        cliff_epoch_id:
+          type: string
+
+    CreditsStatus:
+      type: object
+      required: [balance]
+      additionalProperties: false
+      properties:
+        balance:
+          type: integer
+          minimum: 0
+
+    VerifyResponse:
+      type: object
+      required:
+        - device_public_key
+        - threshold
+        - meets_threshold
+        - score
+        - verifier_time
+        - verifier_base_url
+      additionalProperties: false
+      properties:
+        device_public_key:
+          type: string
+        threshold:
+          type: integer
+          minimum: 0
+        meets_threshold:
+          type: boolean
+        score:
+          type: integer
+          minimum: 0
+        verifier_time:
+          type: integer
+        verifier_base_url:
+          type: string
+        site_origin:
+          type: string
+          default: ""
+        assertion:
+          $ref: "#/components/schemas/OptionalAssertionV1"
+
+    OptionalAssertionV1:
+      type: object
+      required: [assertion_version, assertion_id, assertion_hash, assertion_signature, verifier_key_id]
+      additionalProperties: false
+      properties:
+        assertion_version:
+          type: integer
+          enum: [1]
+        assertion_id:
+          type: string
+        assertion_hash:
+          type: string
+          description: Base64 encoded SHA-256 hash over canonical assertion string
+        assertion_signature:
+          type: string
+          description: Base64 encoded verifier signature over assertion_hash
+        verifier_key_id:
+          type: string
+
+    BurnRequest:
+      type: object
+      required:
+        - burn_version
+        - device_public_key
+        - burn_id
+        - amount
+        - issued_at
+        - client_confirmed_at
+        - nonce
+        - signature
+      additionalProperties: false
+      properties:
+        burn_version:
+          type: integer
+          enum: [1]
+        device_public_key:
+          type: string
+        site_origin:
+          type: string
+          default: ""
+        burn_id:
+          type: string
+          description: Client generated unique burn identifier
+        amount:
+          type: integer
+          minimum: 1
+        issued_at:
+          type: integer
+        client_confirmed_at:
+          type: integer
+        nonce:
+          type: string
+        signature:
+          type: string
+          description: Base64 encoded device signature over canonical burn string
+
+    BurnResponse:
+      type: object
+      required: [status, receipt]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [accepted, rejected]
+        rejection_reason:
+          type: string
+        receipt:
+          $ref: "#/components/schemas/ReceiptV1"
+
+    ReceiptV1:
+      type: object
+      required:
+        - receipt_version
+        - receipt_id
+        - receipt_type
+        - status
+        - device_public_key
+        - epoch_id
+        - nonce
+        - issued_at
+        - client_confirmed_at
+        - submit_received_at
+        - verifier_time
+        - strict_window_seconds
+        - verifier_base_url
+        - site_origin
+        - score_after
+        - credits_after
+        - delta_credits
+        - prev_receipt_hash
+        - verifier_key_id
+        - receipt_hash
+        - receipt_signature
+      additionalProperties: false
+      properties:
+        receipt_version:
+          type: integer
+          enum: [1]
+        receipt_id:
+          type: string
+        receipt_type:
+          type: string
+          description: pulse_accept, pulse_reject, burn_accept, burn_reject
+        status:
+          type: string
+          enum: [accepted, rejected]
+        device_public_key:
+          type: string
+        epoch_id:
+          type: string
+        nonce:
+          type: string
+        issued_at:
+          type: integer
+        client_confirmed_at:
+          type: integer
+        submit_received_at:
+          type: integer
+        verifier_time:
+          type: integer
+        strict_window_seconds:
+          type: integer
+          minimum: 1
+        verifier_base_url:
+          type: string
+        site_origin:
+          type: string
+        score_after:
+          type: integer
+          minimum: 0
+        credits_after:
+          type: integer
+          minimum: 0
+        delta_credits:
+          type: integer
+          description: Positive for issuance, negative for burns, zero for rejects
+        prev_receipt_hash:
+          type: string
+          description: Base64 encoded previous receipt hash or empty string
+        verifier_key_id:
+          type: string
+        receipt_hash:
+          type: string
+          description: Base64 encoded SHA-256 hash of canonical receipt string
+        receipt_signature:
+          type: string
+          description: Base64 encoded verifier signature over receipt_hash
+
+    ErrorResponse:
+      type: object
+      required: [code, message, request_id]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          description: Error code from x-error-codes registry (e.g. E1000)
+        message:
+          type: string
+          description: Human readable error description
+        request_id:
+          type: string
+          description: Unique identifier for this request, for support tracing

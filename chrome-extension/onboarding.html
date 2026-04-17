@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to HPP Browser Login</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #F4F6FA;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 32px rgba(27,58,107,0.12);
+      width: 100%; max-width: 520px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: #1B3A6B;
+      padding: 32px 40px 28px;
+      text-align: center;
+    }
+    .logo-ring {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: #B8860B;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .logo-ring svg { width: 36px; height: 36px; }
+    .wordmark { color: #ffffff; font-size: 22px; font-weight: bold; letter-spacing: 0.06em; }
+    .tagline  { color: #8ca8d4; font-size: 13px; margin-top: 4px; }
+
+    /* Steps indicator */
+    .steps-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 20px 40px 0;
+    }
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #d0d8e8;
+      transition: background 0.3s, transform 0.3s;
+    }
+    .step-dot.active    { background: #1B3A6B; transform: scale(1.3); }
+    .step-dot.completed { background: #1A6B3A; }
+
+    .card-body {
+      padding: 28px 40px 32px;
+      min-height: 240px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .step { display: none; }
+    .step.active { display: block; }
+
+    h2 {
+      font-size: 20px; color: #1B3A6B; margin-bottom: 12px;
+      font-weight: bold;
+    }
+    p { font-size: 14px; color: #555555; line-height: 1.7; margin-bottom: 10px; }
+
+    .three-cols {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin: 20px 0;
+    }
+    .col-item {
+      text-align: center;
+      padding: 16px 12px;
+      background: #F4F6FA;
+      border-radius: 8px;
+      border: 1px solid #e0e8f4;
+    }
+    .col-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #1B3A6B;
+      color: #ffffff;
+      font-size: 13px; font-weight: bold;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 10px;
+    }
+    .col-title { font-size: 12px; font-weight: bold; color: #1B3A6B; margin-bottom: 4px; }
+    .col-desc  { font-size: 11px; color: #777777; line-height: 1.5; }
+
+    .try-box {
+      background: #EEF2FB;
+      border: 1px solid #c0cfe8;
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin: 16px 0;
+      text-align: center;
+    }
+    .try-box p { color: #1B3A6B; font-size: 13px; }
+    .try-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 20px;
+      background: #B8860B;
+      color: #ffffff;
+      border-radius: 6px;
+      font-size: 13px; font-weight: bold;
+      text-decoration: none;
+    }
+
+    .actions {
+      display: flex; gap: 10px; margin-top: 20px;
+      align-items: center;
+    }
+    .btn-continue {
+      flex: 1;
+      padding: 12px;
+      background: #1B3A6B;
+      color: #ffffff;
+      border: none; border-radius: 7px;
+      font-family: Georgia, serif; font-size: 15px; font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-continue:hover { background: #142d54; }
+    .btn-skip {
+      background: none; border: none;
+      font-family: Georgia, serif; font-size: 13px;
+      color: #aaaaaa; cursor: pointer; text-decoration: underline;
+    }
+    .btn-skip:hover { color: #666666; }
+
+    .btn-done {
+      width: 100%;
+      padding: 12px;
+      background: #1A6B3A;
+      color: #ffffff;
+      border: none; border-radius: 7px;
+      font-family: Georgia, serif; font-size: 15px; font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .btn-done:hover { background: #145a30; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div class="logo-ring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="7" r="4"/>
+          <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+      </div>
+      <div class="wordmark">HUMAN PRESENCE PROTOCOL</div>
+      <div class="tagline">Hardware-bound. Time-anchored. Privacy-preserving.</div>
+    </div>
+
+    <div class="steps-bar">
+      <div class="step-dot active" id="dot-0"></div>
+      <div class="step-dot"        id="dot-1"></div>
+      <div class="step-dot"        id="dot-2"></div>
+    </div>
+
+    <div class="card-body">
+
+      <!-- Step 1: What is HPP -->
+      <div class="step active" id="step-0">
+        <h2>Welcome to HPP Browser Login</h2>
+        <p>HPP replaces passwords and CAPTCHAs with cryptographic proof that a real human is present — using the hardware already built into your device.</p>
+        <p>When you log into an HPP-enabled site, your device's secure chip (Touch ID, Face ID, or Windows Hello) signs a time-limited challenge. The server receives proof of presence, not a password. Nothing biometric ever leaves your device.</p>
+        <div class="actions">
+          <button class="btn-continue" onclick="nextStep()">How it works →</button>
+          <button class="btn-skip"     onclick="finish()">Skip intro</button>
+        </div>
+      </div>
+
+      <!-- Step 2: How it works -->
+      <div class="step" id="step-1">
+        <h2>How HPP Works</h2>
+        <div class="three-cols">
+          <div class="col-item">
+            <div class="col-num">1</div>
+            <div class="col-title">Site requests proof</div>
+            <div class="col-desc">An HPP-enabled site asks for presence verification instead of a password.</div>
+          </div>
+          <div class="col-item">
+            <div class="col-num">2</div>
+            <div class="col-title">Your hardware signs</div>
+            <div class="col-desc">Your secure chip produces a hardware-bound signature. Your biometric never leaves the device.</div>
+          </div>
+          <div class="col-item">
+            <div class="col-num">3</div>
+            <div class="col-title">Certificate is issued</div>
+            <div class="col-desc">A time-limited certificate proves your presence. The site trusts the proof — no password needed.</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn-continue" onclick="nextStep()">Try it now →</button>
+          <button class="btn-skip"     onclick="finish()">Skip</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Try it -->
+      <div class="step" id="step-2">
+        <h2>Ready to Try It?</h2>
+        <p>Visit the HPP demo site to experience a full enrollment and login flow with your device biometric.</p>
+        <div class="try-box">
+          <p>Live demo — no account required</p>
+          <a class="try-link" href="https://demo.humanpresenceprotocol.com" target="_blank">
+            Open HPP Demo Site
+          </a>
+        </div>
+        <p style="font-size:12px;color:#aaaaaa;text-align:center;">Or visit any HPP-enabled site — the extension will offer to enroll it automatically.</p>
+        <button class="btn-done" onclick="finish()">Start Using HPP</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 0;
+    const totalSteps = 3;
+
+    function nextStep() {
+      if (currentStep >= totalSteps - 1) { finish(); return; }
+      document.getElementById(`step-${currentStep}`).classList.remove('active');
+      document.getElementById(`dot-${currentStep}`).classList.remove('active');
+      document.getElementById(`dot-${currentStep}`).classList.add('completed');
+      currentStep++;
+      document.getElementById(`step-${currentStep}`).classList.add('active');
+      document.getElementById(`dot-${currentStep}`).classList.add('active');
+    }
+
+    function finish() {
+      window.close();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HPP Browser Login</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      min-height: 380px;
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #ffffff;
+      color: #333333;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #1B3A6B;
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-logo {
+      width: 28px; height: 28px;
+      background: #B8860B;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .header-logo svg { width: 16px; height: 16px; }
+    .header-title { color: #ffffff; font-size: 14px; font-weight: bold; letter-spacing: 0.04em; }
+    .header-sub   { color: #8ca8d4; font-size: 11px; margin-top: 1px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e8eef8;
+    }
+    .tab {
+      flex: 1;
+      padding: 9px 0;
+      text-align: center;
+      font-size: 12px;
+      font-family: Georgia, serif;
+      color: #666666;
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s;
+    }
+    .tab:hover { color: #1B3A6B; }
+    .tab.active {
+      color: #1B3A6B;
+      font-weight: bold;
+      border-bottom-color: #B8860B;
+    }
+
+    /* ── Tab panes ── */
+    .pane { display: none; padding: 14px 16px 16px; }
+    .pane.active { display: block; }
+
+    /* ── Status tab ── */
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #F4F6FA;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+    }
+    .status-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.active   { background: #1A6B3A; }
+    .status-dot.inactive { background: #cccccc; }
+    .status-dot.expiring { background: #B8860B; }
+    .status-label { font-size: 13px; font-weight: bold; color: #1B3A6B; }
+    .status-sub   { font-size: 11px; color: #888888; margin-top: 2px; }
+
+    .cert-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 12px;
+    }
+    .cert-row:last-child { border-bottom: none; }
+    .cert-key   { color: #888888; }
+    .cert-value { color: #1B3A6B; font-family: 'Courier New', monospace; font-size: 11px; }
+
+    .countdown {
+      font-size: 22px;
+      font-weight: bold;
+      color: #1B3A6B;
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+    .countdown.expiring { color: #B8860B; }
+    .countdown-label {
+      font-size: 11px;
+      color: #888888;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 9px;
+      border-radius: 6px;
+      font-family: Georgia, serif;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .btn-primary   { background: #1B3A6B; color: #ffffff; }
+    .btn-secondary { background: #F4F6FA; color: #1B3A6B; border: 1px solid #d0d8e8; font-weight: normal; }
+    .btn-danger    { background: #FFF3F3; color: #8B1A1A; border: 1px solid #f0c0c0; font-weight: normal; }
+    .btn:hover { opacity: 0.88; }
+
+    .inactive-msg {
+      text-align: center;
+      padding: 24px 12px;
+      color: #888888;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .inactive-msg strong { display: block; color: #1B3A6B; font-size: 15px; margin-bottom: 8px; }
+
+    /* ── Sites tab ── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #d0d8e8;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: Georgia, serif;
+      color: #333333;
+      outline: none;
+    }
+    .search-wrap input:focus { border-color: #1B3A6B; }
+
+    .sites-list {
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .site-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .site-row:last-child { border-bottom: none; }
+    .site-favicon {
+      width: 20px; height: 20px;
+      border-radius: 3px;
+      background: #EEF2FB;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #1B3A6B;
+    }
+    .site-origin { font-size: 12px; color: #333333; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .site-date   { font-size: 10px; color: #aaaaaa; }
+    .revoke-btn  { font-size: 11px; color: #8B1A1A; background: none; border: none; cursor: pointer; flex-shrink: 0; }
+    .revoke-btn:hover { text-decoration: underline; }
+
+    .no-sites { text-align: center; padding: 20px; color: #aaaaaa; font-size: 12px; }
+
+    .enroll-current {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #e8eef8;
+    }
+
+    /* ── Settings tab ── */
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 13px; color: #333333; }
+    .setting-sub   { font-size: 11px; color: #888888; margin-top: 2px; }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 38px; height: 22px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #cccccc;
+      border-radius: 22px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 3px; top: 3px;
+      background: #ffffff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    input:checked + .toggle-slider { background: #1B3A6B; }
+    input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    select {
+      padding: 4px 8px;
+      border: 1px solid #d0d8e8;
+      border-radius: 5px;
+      font-family: Georgia, serif;
+      font-size: 12px;
+      color: #333333;
+      background: #ffffff;
+    }
+
+    .options-link {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      font-size: 12px;
+      color: #1B3A6B;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-logo">
+      <svg viewBox="0 0 16 16" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="8" cy="5" r="3"/>
+        <path d="M2 14c0-3 2.5-5 6-5s6 2 6 5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="header-title">HPP Browser Login</div>
+      <div class="header-sub">Human Presence Protocol</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="status">Status</button>
+    <button class="tab"        data-tab="sites">Sites</button>
+    <button class="tab"        data-tab="settings">Settings</button>
+  </div>
+
+  <!-- STATUS TAB -->
+  <div class="pane active" id="pane-status">
+    <div id="status-active" style="display:none">
+      <div class="status-badge">
+        <div class="status-dot active" id="status-dot"></div>
+        <div>
+          <div class="status-label" id="status-label">Session Active</div>
+          <div class="status-sub"   id="status-rp">—</div>
+        </div>
+      </div>
+      <div class="countdown" id="countdown">--:--</div>
+      <div class="countdown-label">until certificate expires</div>
+      <div class="cert-row"><span class="cert-key">Certificate ID</span><span class="cert-value" id="cert-id">—</span></div>
+      <div class="cert-row"><span class="cert-key">Issued</span><span class="cert-value" id="cert-issued">—</span></div>
+      <div class="cert-row"><span class="cert-key">Relying Party</span><span class="cert-value" id="cert-rp">—</span></div>
+      <br>
+      <button class="btn btn-primary"   id="btn-reattest">Re-Attest Now</button>
+      <button class="btn btn-secondary" id="btn-refresh">Refresh Status</button>
+    </div>
+    <div id="status-inactive">
+      <div class="inactive-msg">
+        <strong>No Active Session</strong>
+        Visit an HPP-enabled site to authenticate with your presence.
+      </div>
+      <button class="btn btn-secondary" id="btn-refresh-inactive">Refresh</button>
+    </div>
+  </div>
+
+  <!-- SITES TAB -->
+  <div class="pane" id="pane-sites">
+    <div class="search-wrap">
+      <input type="text" id="site-search" placeholder="Search enrolled sites…">
+    </div>
+    <div class="sites-list" id="sites-list">
+      <div class="no-sites">No enrolled sites yet.</div>
+    </div>
+    <div class="enroll-current">
+      <button class="btn btn-primary" id="btn-enroll-current">Enroll Current Site</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div class="pane" id="pane-settings">
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">HPP Active</div>
+        <div class="setting-sub">Enable presence verification on enrolled sites</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-active" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Privacy Mode</div>
+        <div class="setting-sub">Disable debug logging and diagnostics</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-privacy">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Debug Logging</div>
+        <div class="setting-sub">Log HPP events to browser console</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-debug">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Certificate Lifetime</div>
+        <div class="setting-sub">Session reuse window</div>
+      </div>
+      <select id="select-lifetime">
+        <option value="1800000">30 min</option>
+        <option value="3600000" selected>1 hour</option>
+        <option value="14400000">4 hours</option>
+        <option value="28800000">8 hours</option>
+      </select>
+    </div>
+    <a class="options-link" id="open-options">Advanced settings →</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
