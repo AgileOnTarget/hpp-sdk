@@ -187,7 +187,7 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright [yyyy] [name of copyright owner]
+   Copyright 2026 Agile On Target LLC
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -200,3 +200,11 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+   NOTE: The Apache 2.0 patent grant in Section 3 is narrow and defensive —
+   it covers only those patent claims "necessarily infringed" by the
+   Contributions in this repository. A ground-up reimplementation of the
+   Human Presence Protocol that does not use this code receives NO patent
+   license under this LICENSE. See PATENT-NOTICE.md and NOTICE for the
+   explicit scope of the grant and contact information for commercial
+   patent licensing of the broader HPP architecture.

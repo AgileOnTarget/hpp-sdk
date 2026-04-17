@@ -1,46 +1,103 @@
 # Patent Notice
 
-The Human Presence Protocol (HPP) is the subject of **42 provisional patent applications** filed under **USPTO Customer No. 224891**, between February 14 and March 28, 2026. The portfolio comprises 1,429 claims across 32 protocol primitives, 15 invariants, and 48 capability enablers.
+**Patent Holder:** Agile On Target LLC (Jurisdiction: North Carolina, United States)
+**USPTO Customer Number:** 224891
+**Portfolio:** 42 provisional patent applications filed February 14 – March 28, 2026. 1,429 claims across 32 protocol primitives, 15 invariants, and 48 capability enablers.
+**Non-provisional conversion deadline:** February 14, 2027.
 
-The non-provisional conversion deadline is **February 14, 2027**.
-
----
-
-## What the Apache 2.0 license in this repository grants
-
-The code in this repository is licensed under [Apache License 2.0](LICENSE). The Apache 2.0 license includes an explicit patent grant covering **the contributions made by the licensor in this repository**. You may use, modify, and distribute the code under those terms.
-
-## What it does NOT grant
-
-The Apache 2.0 patent grant **does not extend** to the broader HPP architecture covered by the 42 USPTO applications. Specifically, **production use of HPP at commercial scale**, **selling HPP as a service**, **embedding HPP into a commercial product**, or **building patent-infringing alternative implementations** of the HPP architecture are **not authorized** by the Apache 2.0 license alone.
-
-These activities require a **separate patent license** from the portfolio owner.
-
-In plain English: you can read this code, copy it, integrate it for evaluation, run it for personal or research purposes, and contribute back. You cannot ship a commercial product that practices the patented HPP architecture without a separate patent grant.
+All patent rights in the Human Presence Protocol (HPP) architecture are **reserved by Agile On Target LLC**. The public release of this SDK under the Apache License, Version 2.0 does not transfer, assign, or waive any patent rights other than the limited grant described below.
 
 ---
 
-## Why the SDK is open anyway
+## 1. What the Apache 2.0 license in this repository grants
+
+The code in this repository is licensed under the [Apache License, Version 2.0](LICENSE). Apache 2.0 Section 3 grants a **limited, defensive patent license** from Agile On Target LLC (as the Licensor / original Contributor) covering **only those patent claims that are necessarily infringed** by the unmodified Contributions in this repository, used as distributed.
+
+This grant specifically **does**:
+
+- permit use, modification, and redistribution of the code in this repository for evaluation, integration, research, personal, and non-commercial purposes;
+- survive reorganization, merger, or acquisition of Agile On Target LLC;
+- terminate automatically for any party that files patent litigation against Agile On Target LLC or any other Contributor alleging that the Work or a Contribution infringes a patent (Apache 2.0, Section 3, paragraph 2).
+
+---
+
+## 2. What the Apache 2.0 license does NOT grant
+
+The Apache 2.0 patent grant is narrow. It explicitly **does not**:
+
+1. **Grant a license to the broader HPP architecture.** Any ground-up reimplementation of the Human Presence Protocol that does not use the specific Contributions in this repository receives NO patent license under this LICENSE. The 1,429 claims across the USPTO Customer 224891 portfolio protect the architecture, not just this code.
+
+2. **Authorize commercial production deployment.** Running HPP in production to authenticate real users for a commercial service — whether as an internal component, an embedded feature, or a standalone offering — is beyond the Apache 2.0 grant's practical scope because the architecture is protected independently of any particular implementation. Commercial production deployment requires a **separate written patent license** from Agile On Target LLC.
+
+3. **Authorize embedding into a commercial product.** Shipping a commercial product that includes HPP as a component — whether the HPP code is this SDK, a derivative, or an independent implementation — requires a separate patent license.
+
+4. **Authorize offering HPP as a service.** Hosting an HPP verifier for third parties (including customers, tenants, users, or members of a federation) requires a separate patent license.
+
+5. **Authorize competitive reimplementation.** Writing a clean-room HPP verifier, iOS client, Chrome extension, website SDK, or receipt-chain implementation specifically to compete with the reference implementations — even if the clean-room code uses no Apache-licensed material from this repository — does not receive any patent license. Such an implementation may infringe the USPTO Customer 224891 portfolio claims and may be subject to enforcement.
+
+6. **Grant any trademark license.** See **Trademarks** below.
+
+In plain English: you can **read** this code, **copy** it, **integrate** it for evaluation, **run** it for personal or research purposes, and **contribute back** under the CLA. You **cannot** ship a commercial product or service that practices the HPP architecture without a separate patent grant from Agile On Target LLC.
+
+---
+
+## 3. Why the SDK is open anyway
 
 HPP's security argument depends on **public auditability**. A protocol that proves human presence cryptographically must allow third parties — academics, regulators, prosecuting counsel, security researchers, integrators evaluating adoption — to inspect every line of code that touches the cryptographic primitives. A closed-source HPP would be untrustworthy by construction.
 
 The Apache 2.0 license provides the legal vehicle for that open inspection while preserving the patent rights that fund the development and underwrite the architectural commitments (no surveillance, no behavioral inference, no platform-policy reversibility) that make HPP credible as Internet infrastructure.
 
-This dual structure — open code, patent-pending architecture — is conventional in standards-track infrastructure work. See for example: WebAuthn (open spec, Apache-licensed reference implementations, patent grants negotiated through W3C's Royalty-Free Patent Policy); QUIC (open IETF spec, patent commitments via the IETF IPR disclosure process); or any commercial cryptographic library shipping under a permissive license against patented underlying primitives.
+This dual structure — open code, patent-pending architecture, commercial license for production — is conventional in standards-track infrastructure work. See for example: WebAuthn (open spec, Apache-licensed reference implementations, patent grants negotiated through W3C's Royalty-Free Patent Policy); QUIC (open IETF spec, patent commitments via the IETF IPR disclosure process); or MariaDB, Sentry, CockroachDB, and similar source-available infrastructure shipping with explicit commercial-license gates.
 
 ---
 
-## Inquiries
+## 4. Trademarks
 
-- **Evaluation, integration, research use:** no patent inquiry needed. The Apache 2.0 license covers you.
-- **Commercial production deployment, OEM embedding, licensing for resale:** written request referencing **USPTO Customer No. 224891**.
-- **Standards-body engagement, IETF / W3C / ISO contributions:** the portfolio is available under royalty-free terms for inclusion in published standards subject to standards-body IPR policies.
-- **Litigation, expert witness, regulatory inquiries:** see the marketing site at [humanpresenceprotocol.com](https://humanpresenceprotocol.com) for the RAD documentation and KGM filing chronology.
+The following are **claimed trademarks of Agile On Target LLC**:
+
+- **HPP**
+- **Human Presence Protocol**
+- **Reasoned Authentication Demonstration**
+- **RAD**
+
+The Apache License, Version 2.0 Section 6 expressly does not grant permission to use the trademarks of the Licensor. The permission granted under Apache 2.0 to use, modify, and distribute the code **is not** permission to use the "HPP" or "Human Presence Protocol" names in a way that suggests endorsement by, sponsorship from, or affiliation with Agile On Target LLC.
+
+**Forks, derivatives, and reimplementations** must use a different product name and must not hold themselves out as the "Human Presence Protocol" or "HPP" absent a separate written trademark license. Descriptive use (e.g., "compatible with HPP", "implements the HPP protocol as published by Agile On Target LLC under USPTO Customer No. 224891") is acceptable under ordinary trademark nominative-fair-use principles.
 
 ---
 
-## No warranty
+## 5. Contributions
 
-The Apache 2.0 license disclaims warranties; nothing in this repository constitutes a representation that any specific deployment of HPP infringes or does not infringe any specific patent claim. Patent enforceability is a question of law decided by competent jurisdictions on a case-by-case basis, not by the contents of this notice.
+All contributions to this repository are accepted **only** under the Contributor License Agreement at [`CLA.md`](CLA.md). Every contributor grants Agile On Target LLC:
 
-This document is informational and does not constitute legal advice.
+1. A perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable **copyright license** to reproduce, prepare derivative works of, publicly display, publicly perform, sublicense, and distribute the contribution and such derivative works.
+2. A perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable **patent license** to make, have made, use, offer to sell, sell, import, and otherwise transfer the contribution.
+3. A representation that the contributor has the right to grant the above licenses.
+
+This CLA is what keeps the patent portfolio consolidated even as the code evolves. Contributions that have not been submitted under the CLA will not be merged.
+
+---
+
+## 6. Inquiries
+
+| Your situation | What you need |
+|---|---|
+| Evaluating, integrating, researching, or running HPP for personal use | **No patent inquiry needed.** The Apache 2.0 license covers you. |
+| **Commercial production deployment**, OEM embedding, licensing for resale, or offering HPP as a service | **Separate written patent license** from Agile On Target LLC. Reference USPTO Customer No. 224891 in your inquiry. |
+| Standards-body engagement (IETF / W3C / ISO / ITU) | Portfolio is available under royalty-free terms for inclusion in published standards subject to standards-body IPR policies. |
+| Litigation, expert witness, regulatory inquiries | See [humanpresenceprotocol.com](https://humanpresenceprotocol.com) for the RAD documentation and KGM filing chronology. |
+| Trademark use beyond nominative fair use (product name, marketing, domain) | **Separate written trademark license** from Agile On Target LLC. |
+
+Contact through the GitHub organization at [https://github.com/AgileOnTarget](https://github.com/AgileOnTarget) or via counsel of record on USPTO Customer No. 224891.
+
+---
+
+## 7. No warranty; no legal advice
+
+The Apache 2.0 license disclaims warranties. Nothing in this repository — including this notice, the NOTICE file, or the LICENSE — constitutes a representation that any specific deployment of HPP infringes or does not infringe any specific patent claim. Patent enforceability is a question of law decided by courts of competent jurisdiction on a case-by-case basis, not by the contents of this notice.
+
+This document is **informational** and does not constitute legal advice. Parties seeking to use HPP in commercial contexts should consult their own patent counsel before relying on any statement in this document.
+
+---
+
+*Agile On Target LLC — North Carolina, United States — USPTO Customer No. 224891*

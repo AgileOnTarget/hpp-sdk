@@ -4,6 +4,25 @@ All notable changes to this SDK are documented here. The format follows [Keep a 
 
 ---
 
+## [0.1.1] — 2026-04-17 — Patent / trademark / CLA hardening
+
+### Added
+- **`NOTICE`** — Apache 2.0 attribution file naming Agile On Target LLC (North Carolina) as copyright owner and patent holder. Enumerates the four things the Apache 2.0 patent grant does NOT authorize (commercial production deployment, OEM embedding, HPP-as-a-service, ground-up reimplementation) and the defensive-termination clause. Claims trademark on "HPP", "Human Presence Protocol", "Reasoned Authentication Demonstration", "RAD".
+- **`CLA.md`** — Contributor License Agreement. Every contribution grants Agile On Target LLC copyright + patent licenses in the contribution, consolidating the portfolio. PR submission is the signing event; organizations with IP-assignment policies get a one-line statement in the PR description.
+- **Patent-scope note in `LICENSE`** — appended to the Apache 2.0 boilerplate APPENDIX so any file rendering the LICENSE sees the narrowing language inline. Fills in Copyright holder: `Agile On Target LLC`, year `2026`.
+
+### Changed
+- **`PATENT-NOTICE.md`** — rewritten. Names Agile On Target LLC as patent holder. Adds §2 "What the Apache 2.0 license does NOT grant" with six specific non-grants. Adds §4 Trademarks section. Adds §5 Contributions section referencing the new CLA. §6 Inquiries as a table mapping situations to required actions.
+- **`README.md`** — "License" section renamed to "License, Patents, and Trademarks"; explicitly names Agile On Target LLC as copyright + patent holder; enumerates the four non-grants inline; surfaces the CLA. File tree updated to include `NOTICE` and `CLA.md`.
+- **`CONTRIBUTING.md`** — "Patent / commercial licensing" section rewritten as "Contributor License Agreement — required" + companion "Patent / commercial / trademark licensing" section.
+
+### Rationale
+Apache 2.0's Section 3 patent grant is narrow by design: it covers only patent claims "necessarily infringed" by the Contribution, applied to that Contribution in the form distributed. A ground-up reimplementation gets no patent license. Adoption of HPP for commercial production requires a separate patent license. This release makes all of that explicit so a reader doesn't have to reason about it from the Apache text alone.
+
+Nothing in this release grants additional rights or imposes additional restrictions beyond what the Apache 2.0 license already permits — it clarifies the scope. The patent portfolio under USPTO Customer No. 224891 remains **reserved to Agile On Target LLC**.
+
+---
+
 ## [0.1.0] — 2026-04-17 — Initial public scaffold (Phase 1)
 
 ### Added

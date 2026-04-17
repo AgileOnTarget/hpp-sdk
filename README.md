@@ -114,7 +114,9 @@ The reference verifier implementation is at [`github.com/AgileOnTarget/hpp-verif
 ```
 hpp-sdk/
 ├── README.md                     ← you are here
-├── LICENSE                       ← Apache 2.0
+├── LICENSE                       ← Apache 2.0 (with patent-scope note)
+├── NOTICE                        ← Apache 2.0 attribution + patent + trademark reservations
+├── CLA.md                        ← Contributor License Agreement (assigns copyright + patent rights to AOT LLC)
 ├── PATENT-NOTICE.md              ← USPTO Customer No. 224891 disclosure
 ├── CONTRIBUTING.md
 ├── SECURITY.md                   ← responsible-disclosure policy
@@ -160,9 +162,24 @@ The protocol itself is at canonical version `v1.0` (per [`protocol/openapi.yaml`
 
 ---
 
-## License
+## License, Patents, and Trademarks
 
-Code in this repository is licensed under [Apache License 2.0](LICENSE). See [`PATENT-NOTICE.md`](PATENT-NOTICE.md) for the patent context: HPP is the subject of 42 provisional patent applications under USPTO Customer No. 224891, filed February 14 – March 28, 2026. The Apache 2.0 license grants implementation rights to the code in this repo; **separate patent grants are required for production use of the patented architecture**.
+**Copyright © 2026 Agile On Target LLC.** All rights reserved except as expressly licensed below.
+
+**Code:** [Apache License, Version 2.0](LICENSE).
+
+**Patents:** The Human Presence Protocol is the subject of 42 provisional patent applications under **USPTO Customer No. 224891** (1,429 claims; filed February 14 – March 28, 2026; non-provisional conversion deadline February 14, 2027). **All patent rights are reserved by Agile On Target LLC.** The Apache 2.0 patent grant is narrow and defensive — it covers only patent claims necessarily infringed by the specific code in this repository, used as distributed. It does **not** authorize:
+
+- commercial production deployment of HPP,
+- embedding HPP into a commercial product,
+- offering HPP as a service to third parties, or
+- ground-up reimplementations of the HPP architecture.
+
+Each of the above requires a **separate written patent license** from Agile On Target LLC. See [`PATENT-NOTICE.md`](PATENT-NOTICE.md) and [`NOTICE`](NOTICE) for the full scope, and the Apache License's Section 3 for the defensive termination clause.
+
+**Trademarks:** "HPP", "Human Presence Protocol", "Reasoned Authentication Demonstration", and "RAD" are claimed trademarks of Agile On Target LLC. Apache 2.0 Section 6 does not grant trademark rights. Forks and reimplementations must use a different product name.
+
+**Contributions:** every contribution to this repository is governed by the [Contributor License Agreement](CLA.md), which grants Agile On Target LLC copyright and patent licenses in the contribution so the portfolio remains consolidated.
 
 ---
 
@@ -186,5 +203,5 @@ This is **v0.1.0 — initial public scaffold (Phase 1)**. See [`CHANGELOG.md`](C
 
 - Issues, PRs, discussion: this repo
 - Security disclosure: see [`SECURITY.md`](SECURITY.md)
-- Patent / commercial licensing inquiries: USPTO Customer No. 224891
+- Patent / commercial licensing / trademark inquiries: reference **USPTO Customer No. 224891** in correspondence (via the GitHub org at [https://github.com/AgileOnTarget](https://github.com/AgileOnTarget))
 - Public marketing site: [humanpresenceprotocol.com](https://humanpresenceprotocol.com)
