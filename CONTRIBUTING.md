@@ -50,11 +50,19 @@ Be technical, be honest, be brief. Disagree about engineering decisions on the m
 
 ## Contributor License Agreement — required
 
-All contributions are accepted **only** under the [Contributor License Agreement](CLA.md). By opening a pull request or otherwise submitting a contribution, you agree to grant Agile On Target LLC a perpetual copyright license and a patent license to your contribution, and you represent that you have the right to grant those licenses. Submitting a PR is the sign — no separate signature is required for individual contributors.
+All contributions are accepted **only** under the [Contributor License Agreement](CLA.md). Every PR opened against this repository triggers the CLA Assistant workflow ([`.github/workflows/cla.yml`](.github/workflows/cla.yml)), which comments on the PR and asks you to sign.
 
-If you are contributing on behalf of an organization with an active IP assignment policy, include the following one-liner in the PR description:
+**To sign:** post a comment on the PR containing the exact text:
+
+> I have read the CLA Document and I hereby sign the CLA
+
+The workflow records the signature in [`signatures/version1/cla.json`](signatures/version1/cla.json), committed to `main`. Your signature is auditable in git history and covers every subsequent PR you open against the current CLA version — you sign once per CLA version, not once per PR.
+
+If you are contributing on behalf of an organization with an active IP assignment policy, include the following one-liner in the PR description in addition to posting the sign-off comment:
 
 > I am authorized to submit this Contribution on behalf of [Organization Name] under the terms of the CLA at CLA.md.
+
+For PRs from pre-authorized bots (Dependabot, Renovate, GitHub Actions) the signature requirement is waived via the workflow's `allowlist`.
 
 ## Patent / commercial / trademark licensing
 

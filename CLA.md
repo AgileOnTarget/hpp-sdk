@@ -57,16 +57,27 @@ This Agreement, together with the LICENSE, NOTICE, and PATENT-NOTICE files in th
 
 ## How to sign
 
-Signing is implicit in the act of submitting a Contribution:
+### Automated signing (GitHub pull requests)
 
-- Opening a Pull Request against this repository
-- Submitting a patch or suggested edit by any other channel
+An automated CLA Assistant workflow runs on every pull request to `AgileOnTarget/hpp-sdk`. The workflow posts a comment on Your PR containing a link back to this document and an instruction. To complete the signature, post a reply comment on the PR containing the exact text:
 
-If You are submitting a Contribution on behalf of an organization (rather than as an individual), the first Contribution from that organization should include a one-line statement in the PR description:
+> I have read the CLA Document and I hereby sign the CLA
+
+The workflow records `{ GitHub username, PR number, commit SHA, CLA version, ISO 8601 timestamp }` in the repository's signatures ledger at [`signatures/version1/cla.json`](signatures/version1/cla.json) and unblocks the PR for merge. The ledger is committed directly to `main`, making the signature record an immutable part of git history. Subsequent PRs from the same contributor against the same CLA version do not require re-signing.
+
+If this document is materially revised, the signatures directory version increments (`version1/` → `version2/`), which re-prompts all contributors for fresh consent on the new terms.
+
+### Signing on behalf of an organization
+
+If You are submitting a Contribution on behalf of an organization rather than as an individual, include the following one-liner in the PR description in addition to posting the sign-off comment:
 
 > I am authorized to submit this Contribution on behalf of [Organization Name] under the terms of the Contributor License Agreement at CLA.md.
 
-For significant Contributions or when submitting on behalf of an employer with an active IP assignment policy, a separately signed CLA may be requested by AOT. Reach out through the GitHub organization at [https://github.com/AgileOnTarget](https://github.com/AgileOnTarget) if Your organization's policies require a countersigned instrument.
+For significant Contributions, or when submitting on behalf of an employer whose IP-assignment policy requires a countersigned instrument, AOT may request a separately-signed CLA (physical or DocuSign). Reach out through the GitHub organization at [https://github.com/AgileOnTarget](https://github.com/AgileOnTarget) if Your organization's policies require that arrangement.
+
+### Signing outside GitHub
+
+For Contributions submitted by any channel other than a GitHub pull request to this repository (e.g., patches sent by email, archived discussion threads, specification contributions via standards bodies), contact Agile On Target LLC through the channels in [`PATENT-NOTICE.md §6 Inquiries`](PATENT-NOTICE.md) to arrange an appropriate signing mechanism.
 
 ---
 

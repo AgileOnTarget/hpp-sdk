@@ -4,6 +4,26 @@ All notable changes to this SDK are documented here. The format follows [Keep a 
 
 ---
 
+## [0.1.4] — 2026-04-17 — CLA Assistant automated signing
+
+### Added
+- **`.github/workflows/cla.yml`** — GitHub Actions workflow using [`contributor-assistant/github-action@v2.3.2`](https://github.com/contributor-assistant/github-action). Runs on every pull request. Posts a comment prompting the contributor to sign the [CLA](CLA.md) by replying with the exact text "I have read the CLA Document and I hereby sign the CLA". On signature, commits an entry to the repository's signatures ledger and unblocks the PR for merge. Explicit least-privilege permissions (`contents: write`, `pull-requests: write`, `statuses: write`, `actions: write`). `lock-pullrequest-after-merge: true` so the signature record is immutable post-merge. Allowlisted bots: `dependabot`, `renovate`, `github-actions`.
+- **`signatures/version1/cla.json`** — initial empty signatures ledger. Every contributor signature against CLA version 1 lands here. The file is committed to `main` so the audit trail lives in git history forever — **not on a third-party service**.
+
+### Changed
+- **`CLA.md`** — "How to sign" section rewritten to document the automated workflow. Retains the organization-contributor one-liner requirement and the outside-GitHub signing channel. Adds a note that re-versioning the `signatures/` directory forces fresh consent from all contributors if the CLA text is materially revised.
+- **`CONTRIBUTING.md`** — "Contributor License Agreement — required" section updated to describe the automated flow. Previous "submitting a PR is the sign" language replaced with the explicit sign-off comment requirement.
+
+### Why this over hosted `cla-assistant.io`
+Two reasons: (1) the signatures ledger is committed to this repository's main branch, so the record of every contributor's agreement is under Agile On Target LLC's direct control and survives indefinitely in git history — it doesn't depend on a third-party service continuing to exist or maintain its database; (2) no OAuth flow to authorize an external app on the AgileOnTarget organization — the workflow runs under the repository's built-in `GITHUB_TOKEN` with explicit least-privilege permissions.
+
+### Acquisition posture
+This upgrades the CLA evidentiary record from "implicit consent via PR submission" (legally valid but weakly-documented) to "timestamped signature ledger committed to main" (strongly-documented). A corp-dev counsel's diligence pass can inspect `signatures/version1/cla.json` directly and see the full list of contributors who have agreed to the CLA version under which their code is incorporated.
+
+No rights added or removed vs. v0.1.3 for the Apache 2.0 grant, the CLA's substantive terms, or the patent scope. This is procedure, not substance.
+
+---
+
 ## [0.1.3] — 2026-04-17 — Acquisition-readiness audit pass
 
 Purpose: close every legal-hygiene gap a corp-dev counsel's diligence pass would flag. No rights added or removed vs. v0.1.2. Shipping-completeness, attribution consistency, and disclosure clarity all upgraded.
