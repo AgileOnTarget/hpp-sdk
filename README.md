@@ -116,6 +116,8 @@ hpp-sdk/
 ├── README.md                     ← you are here
 ├── LICENSE                       ← Apache 2.0 (with patent-scope note)
 ├── NOTICE                        ← Apache 2.0 attribution + patent + trademark reservations
+├── PATENT-NOTICE.md              ← Patent scope, trademarks, inquiries
+├── PATENT-POLICY.md              ← Non-normative status of protocol documentation
 ├── CLA.md                        ← Contributor License Agreement (assigns copyright + patent rights to AOT LLC)
 ├── PATENT-NOTICE.md              ← USPTO Customer No. 224891 disclosure
 ├── CONTRIBUTING.md
@@ -177,7 +179,7 @@ The protocol itself is at canonical version `v1.0` (per [`protocol/openapi.yaml`
 
 Each of the above requires a **separate written patent license** from Agile On Target LLC. See [`PATENT-NOTICE.md`](PATENT-NOTICE.md) and [`NOTICE`](NOTICE) for the full scope, and the Apache License's Section 3 for the defensive termination clause.
 
-**Trademarks:** "HPP", "Human Presence Protocol", "Reasoned Authentication Demonstration", and "RAD" are claimed trademarks of Agile On Target LLC. Apache 2.0 Section 6 does not grant trademark rights. Forks and reimplementations must use a different product name.
+**Trademarks:** Agile On Target LLC has filed federal service-mark applications on the USPTO Principal Register for **Human Presence Protocol** (Serial 99656359), **HPP** (99656390), **Proof of Time** (99656418), **Temporal Identity** (99656431), and **Presence Proof** (99656479) — all in Class 042 (authentication services), all filed 2026-02-17 under Section 1(b) intent-to-use. Priority date for each mark: 2026-02-17 (Lanham Act §7(c)). Apache 2.0 Section 6 does not grant trademark rights; forks and reimplementations must use a different product name. The ® symbol must not be used until registration issues; ℠ or ™ is appropriate in the interim.
 
 **Contributions:** every contribution to this repository is governed by the [Contributor License Agreement](CLA.md), which grants Agile On Target LLC copyright and patent licenses in the contribution so the portfolio remains consolidated.
 

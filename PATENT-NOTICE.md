@@ -53,16 +53,33 @@ This dual structure — open code, patent-pending architecture, commercial licen
 
 ## 4. Trademarks
 
-The following are **claimed trademarks of Agile On Target LLC**:
+Agile On Target LLC has filed federal service-mark applications on the **USPTO Principal Register** for the marks below, all in **International Class 042** (authentication services), all **filed February 17, 2026**, on **Section 1(b) intent-to-use** basis:
 
-- **HPP**
-- **Human Presence Protocol**
-- **Reasoned Authentication Demonstration**
-- **RAD**
+| Mark | USPTO Serial No. | Filing Date | Filing Basis |
+|---|---|---|---|
+| **Human Presence Protocol** | 99656359 | 2026-02-17 | §1(b) ITU |
+| **HPP** | 99656390 | 2026-02-17 | §1(b) ITU |
+| **Proof of Time** | 99656418 | 2026-02-17 | §1(b) ITU |
+| **Temporal Identity** | 99656431 | 2026-02-17 | §1(b) ITU |
+| **Presence Proof** | 99656479 | 2026-02-17 | §1(b) ITU |
 
-The Apache License, Version 2.0 Section 6 expressly does not grant permission to use the trademarks of the Licensor. The permission granted under Apache 2.0 to use, modify, and distribute the code **is not** permission to use the "HPP" or "Human Presence Protocol" names in a way that suggests endorsement by, sponsorship from, or affiliation with Agile On Target LLC.
+Under Lanham Act Section 7(c), the filing of each application establishes a **nationwide priority date of February 17, 2026** for the respective mark, subject to USPTO examination, publication for opposition, and (for Section 1(b) filings) the filing of a Statement of Use or Amendment to Allege Use with specimens of actual use in commerce before the registration issues. Status for each application can be verified publicly at [USPTO TSDR](https://tsdr.uspto.gov/) by serial number.
 
-**Forks, derivatives, and reimplementations** must use a different product name and must not hold themselves out as the "Human Presence Protocol" or "HPP" absent a separate written trademark license. Descriptive use (e.g., "compatible with HPP", "implements the HPP protocol as published by Agile On Target LLC under USPTO Customer No. 224891") is acceptable under ordinary trademark nominative-fair-use principles.
+### Symbol usage
+
+Because none of the marks above has yet matured to federal registration, the **®** symbol **must not be used** in connection with any of them. The appropriate designators are **℠** (service mark, most accurate for Class 042 services) or **™** (more commonly recognized). After a registration certificate issues for any given mark, **®** becomes the appropriate designator for that mark.
+
+### Apache 2.0 exclusion
+
+The Apache License, Version 2.0 Section 6 **expressly does not grant permission to use the trademarks of the Licensor**. The Apache 2.0 license to use, modify, and distribute the code **is not** permission to use the "HPP" or "Human Presence Protocol" names — or any of the other listed marks — in a way that suggests endorsement by, sponsorship from, or affiliation with Agile On Target LLC.
+
+### Forks and reimplementations
+
+**Forks, derivatives, and reimplementations** must use a different product name and must not hold themselves out as the "Human Presence Protocol" or "HPP" absent a separate written trademark license from Agile On Target LLC. Descriptive use (e.g., "compatible with HPP", "implements the HPP protocol as published by Agile On Target LLC under USPTO Customer No. 224891") is acceptable under ordinary trademark nominative-fair-use principles, provided the use does not falsely suggest affiliation.
+
+### Trademark licensing inquiries
+
+Requests for trademark licensing — including product-name use, domain registration incorporating the marks, certification programs, or use of any mark on marketing materials — should reference the corresponding USPTO serial number in all correspondence.
 
 ---
 
