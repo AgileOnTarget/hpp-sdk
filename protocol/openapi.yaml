@@ -1,3 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Agile On Target LLC
+#
+# This file is part of the Human Presence Protocol SDK
+# (https://github.com/AgileOnTarget/hpp-sdk). Licensed under the Apache
+# License, Version 2.0; see LICENSE, NOTICE, PATENT-NOTICE.md, and
+# PATENT-POLICY.md for the scope of the patent grant.
+#
+# IMPORTANT: This OpenAPI specification is non-normative for patent-grant
+# purposes. Reading, citing, or reimplementing from this document confers
+# no patent license under the USPTO Customer No. 224891 portfolio. See
+# PATENT-POLICY.md for the full statement. All trademarks and patent
+# rights reserved by Agile On Target LLC.
+
 openapi: 3.1.0
 info:
   title: Human Presence Protocol Verifier API

@@ -58,7 +58,7 @@ If you are contributing on behalf of an organization with an active IP assignmen
 
 ## Patent / commercial / trademark licensing
 
-Your contribution is licensed to downstream users under [Apache 2.0](LICENSE). The Apache 2.0 patent grant is narrow — it covers only the patent claims necessarily infringed by the contribution as distributed. Commercial production deployment, OEM embedding, offering HPP as a service, and ground-up reimplementation of the HPP architecture **are not authorized** by the Apache 2.0 license alone and require a **separate written patent license** from Agile On Target LLC (USPTO Customer No. 224891). Trademark use of "HPP" / "Human Presence Protocol" beyond nominative fair use requires a separate trademark license. See [`PATENT-NOTICE.md`](PATENT-NOTICE.md) and [`NOTICE`](../NOTICE) for details.
+Your contribution is licensed to downstream users under [Apache 2.0](LICENSE). The Apache 2.0 patent grant is narrow — it covers only the patent claims necessarily infringed by the contribution as distributed. Commercial production deployment, OEM embedding, offering HPP as a service, and ground-up reimplementation of the HPP architecture **are not authorized** by the Apache 2.0 license alone and require a **separate written patent license** from Agile On Target LLC (USPTO Customer No. 224891). Trademark use of "HPP" / "Human Presence Protocol" beyond nominative fair use requires a separate trademark license. See [`PATENT-NOTICE.md`](PATENT-NOTICE.md), [`NOTICE`](NOTICE), and [`PATENT-POLICY.md`](PATENT-POLICY.md) for details.
 
 ## Questions
 

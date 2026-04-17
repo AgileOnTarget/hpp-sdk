@@ -1,10 +1,19 @@
 # Security Policy
 
+**Issuer:** Agile On Target LLC (USPTO Customer No. 224891).
+
 ## Reporting a vulnerability
 
 **Do not file public GitHub issues for security vulnerabilities.**
 
-Send a written report referencing **USPTO Customer No. 224891**. Include:
+### How to reach us
+
+Send a written report by **one** of the following channels, referencing **USPTO Customer No. 224891** in the subject line:
+
+1. **GitHub Security Advisories** (preferred) — use the "Report a vulnerability" button on the repository's Security tab at [github.com/AgileOnTarget/hpp-sdk/security/advisories](https://github.com/AgileOnTarget/hpp-sdk/security/advisories). This creates a private advisory visible only to the maintainers.
+2. **Direct correspondence** — through the contact channels listed on the project's marketing site at [humanpresenceprotocol.com](https://humanpresenceprotocol.com) under "Inquiry." Use "Security / USPTO Customer No. 224891" as the subject line.
+
+### What to include
 
 1. **Component** — protocol / iOS / website / chrome-extension / verifier reference implementation
 2. **Severity** — CRITICAL / HIGH / MEDIUM / LOW (your assessment; we may revise)
@@ -14,6 +23,21 @@ Send a written report referencing **USPTO Customer No. 224891**. Include:
 6. **Disclosure preference** — coordinated disclosure window (default 90 days) or public disclosure on receipt
 
 We acknowledge receipt within 3 business days. We provide a status update within 14 days. We coordinate public disclosure with the reporter.
+
+## Safe harbor for good-faith security research
+
+Agile On Target LLC authorizes good-faith security research conducted under this policy and will not pursue or support legal action (including under the U.S. Computer Fraud and Abuse Act, the Digital Millennium Copyright Act, or state computer-crime statutes) against researchers who:
+
+1. Comply with the reporting process in "How to reach us" above;
+2. Test **only against their own accounts, devices, or explicitly authorized test fixtures** (do not test against other users' data or against production systems at scale);
+3. Avoid privacy violations, destruction of data, and interruption or degradation of services available to other users;
+4. Do not exfiltrate data beyond the minimum necessary to demonstrate the vulnerability, do not retain it longer than necessary for the report, and do not disclose it to any third party;
+5. Give Agile On Target LLC a reasonable coordinated-disclosure window (default 90 days from acknowledged receipt, extendable by agreement for vulnerabilities requiring material engineering effort to remediate);
+6. Comply with all applicable laws.
+
+This safe-harbor statement is binding on Agile On Target LLC as the publisher of this repository. It does not bind Apple, relying-party sites, the production reference verifier's hosting provider, or any other third party whose systems a researcher may touch in the course of research. Researchers are responsible for ensuring their activity is authorized under every applicable jurisdiction and every party's terms of service.
+
+This is not legal advice. If you are unsure whether a particular research activity is in scope, ask us first through the reporting channels above.
 
 ## Scope
 

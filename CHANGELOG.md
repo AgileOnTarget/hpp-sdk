@@ -4,6 +4,46 @@ All notable changes to this SDK are documented here. The format follows [Keep a 
 
 ---
 
+## [0.1.3] — 2026-04-17 — Acquisition-readiness audit pass
+
+Purpose: close every legal-hygiene gap a corp-dev counsel's diligence pass would flag. No rights added or removed vs. v0.1.2. Shipping-completeness, attribution consistency, and disclosure clarity all upgraded.
+
+### Added
+- **`AUTHORS`** — names Agile On Target LLC as sole copyright holder; names Thomas Elliott Friend as the authorized signatory; documents the CLA-consolidated posture (contributors appear in git log, copyright flows to AOT LLC). A single file an acquirer's counsel can reference for chain-of-title.
+- **`THIRD-PARTY-LICENSES.md`** — full inventory of every file shipping in v0.1.3 with third-party-status classification. Current state: **zero unmodified third-party components**. Documents the forward-looking posture for Phase 2 (psl upstream MIT, QR rendering libraries, Swift Package transitives) so there's a standing framework when the first dep is added.
+- **Apache 2.0 SPDX headers on every source file:**
+  - 9 JavaScript files in `chrome-extension/` (`background.js`, `content.js`, `hpp-api.js`, `popup.js`, `options.js` + 4 `lib/*.js`)
+  - 4 HTML files in `chrome-extension/` (`index.html`, `onboarding.html`, `options.html`, `popup.html`)
+  - `protocol/openapi.yaml` (with the non-normative-for-patent-grant-purposes restatement inline)
+  - Format: `SPDX-License-Identifier: Apache-2.0` + `Copyright 2026 Agile On Target LLC` + cross-reference to LICENSE, NOTICE, PATENT-NOTICE, PATENT-POLICY + USPTO Customer No. 224891 + trademarks-reserved statement
+- **Safe-harbor clause in `SECURITY.md`** — binding on Agile On Target LLC for good-faith security research conducted under the policy. Covers CFAA, DMCA, state computer-crime statutes. 6 compliance conditions (follow reporting process; test only own / authorized fixtures; avoid privacy violations and data destruction; minimize and don't exfiltrate data; 90-day coordinated disclosure window default; comply with applicable laws). Scoped to AOT — does not bind Apple, relying parties, or third parties.
+- **Explicit contact channels in `SECURITY.md`** — GitHub Security Advisories (preferred, private) + direct correspondence via the marketing-site inquiry form. Subject-line discipline ("USPTO Customer No. 224891") documented.
+
+### Restored
+- **`chrome-extension/icons/`** — `hpp-16.png`, `hpp-32.png`, `hpp-48.png`, `hpp-128.png`. Referenced in `chrome-extension/README.md` file tree; previously absent from the v0.1.0–v0.1.2 release, which made the extension non-loadable. Shipping-completeness fix.
+- **`chrome-extension/lib/hpp-server-pubkey.pem`** — the pinned attestation-server public key. Referenced in the file tree; previously missing. Extension cannot verify server signatures without it.
+
+### Changed
+- **Every sub-README** (`chrome-extension/README.md`, `ios/README.md`, `website/README.md`, `protocol/README.md`) now carries the same "License, patents, and trademarks" block at the bottom, cross-referencing the top-level legal documents (LICENSE, NOTICE, PATENT-NOTICE, PATENT-POLICY, AUTHORS, THIRD-PARTY-LICENSES, CLA). Trademark serial numbers cited inline. Symbol-usage note inline. No folder is an orphan for license traceability.
+- **`README.md` file tree** surfaces the new `AUTHORS` and `THIRD-PARTY-LICENSES.md` files.
+- **`CONTRIBUTING.md`** fixed a broken relative path (`../NOTICE` → `NOTICE`) since CONTRIBUTING and NOTICE are both at the repository root.
+
+### Audit trail
+- **Cross-file entity-name consistency verified:** `Agile On Target LLC` used consistently across all legal-bearing files. No drift to "AOT LLC" / "Agile-On-Target" / other variants in normative text. (The shorthand "AOT LLC" survives in two descriptive annotations in README and THIRD-PARTY-LICENSES but is unambiguous in context and points to the same legal entity.)
+- **USPTO Customer No. 224891** cited consistently.
+- **Jurisdiction** (North Carolina, United States) cited consistently in LICENSE APPENDIX, PATENT-NOTICE, PATENT-POLICY, CLA §8, AUTHORS.
+- **Apache 2.0 + patent-narrowing language** consistent across LICENSE APPENDIX, NOTICE, PATENT-NOTICE §1–§2, PATENT-POLICY §2, README.
+
+### What this release does NOT do
+- Does not change the Apache 2.0 grant or add any new license terms.
+- Does not modify the Contributor License Agreement (`CLA.md` is byte-identical to v0.1.2).
+- Does not add, drop, or modify the 5 filed USPTO service-mark applications.
+- Does not assert new rights.
+
+The intent is that a corp-dev counsel's diligence pass — "inventory licenses, confirm chain of title, verify safe-harbor policy, check for third-party-license gaps, confirm trademark claims are backed by filings" — lands on a repository where every answer is one file away.
+
+---
+
 ## [0.1.2] — 2026-04-17 — Filed-trademark citations + Patent Policy + Pulse/RAD corrections
 
 ### Added

@@ -99,3 +99,14 @@ These are **load-bearing** properties of the iOS implementation that any extract
 - **License-scan OCR runs on-device via Apple's Vision framework.** Image is parsed in memory and discarded immediately. (This currently lives in `HPPDemo/DateOfBirthView.swift`'s `LicenseScannerSheet`; will be extracted to `HPPCore.LicenseScannerSheet` in Phase 2.)
 
 If a Phase 2 extraction breaks any of the above, the extraction is wrong — the test suite must catch it.
+
+
+---
+
+## License, patents, and trademarks
+
+- **Code:** [Apache License, Version 2.0](../LICENSE). Copyright © 2026 Agile On Target LLC.
+- **Patent scope:** [`../PATENT-NOTICE.md`](../PATENT-NOTICE.md) and [`../PATENT-POLICY.md`](../PATENT-POLICY.md). USPTO Customer No. 224891. All patent rights reserved by Agile On Target LLC; Apache 2.0 §3 grant is narrow and does not authorize commercial production deployment, OEM embedding, or ground-up reimplementation.
+- **Trademarks:** `HPP` (USPTO Serial 99656390), `Human Presence Protocol` (Serial 99656359), + 3 others filed 2026-02-17 — see [`../NOTICE`](../NOTICE) and [`../PATENT-NOTICE.md §4`](../PATENT-NOTICE.md). Use `℠` or `™` (not `®` until registration issues).
+- **Attribution:** [`../NOTICE`](../NOTICE), [`../AUTHORS`](../AUTHORS), [`../THIRD-PARTY-LICENSES.md`](../THIRD-PARTY-LICENSES.md).
+- **Contributions:** governed by [`../CLA.md`](../CLA.md).
