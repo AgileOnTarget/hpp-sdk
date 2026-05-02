@@ -127,19 +127,34 @@ The reference verifier implementation is at [`github.com/AgileOnTarget/hpp-verif
 
 Beyond the per-surface READMEs above, the protocol documentation in [`protocol/docs/`](protocol/docs/) covers everything an integrator needs:
 
+**Specs and architecture:**
 - [`core-spec.md`](protocol/docs/core-spec.md) — Formal model: HPP-PRES, NPHT, Biometric Burn, CCM
+- [`canonical-protocol-spec.md`](protocol/docs/canonical-protocol-spec.md) — Platform-agnostic protocol specification (frozen v2.0)
 - [`architecture.md`](protocol/docs/architecture.md) — System architecture overview
+- [`client-sdk-architecture.md`](protocol/docs/client-sdk-architecture.md) — Recommended architecture for any HPP client SDK
+- [`reference-verifier-architecture.md`](protocol/docs/reference-verifier-architecture.md) — Reference architecture for an HPP Verifier Service
+
+**Security:**
+- [`threat-model.md`](protocol/docs/threat-model.md) — Adversarial games and assumptions
+- [`security-model.md`](protocol/docs/security-model.md) — Security objectives, trust boundaries, threat-model assumptions
+- [`security-invariants.md`](protocol/docs/security-invariants.md) — Eight enforcement invariants every HPP implementation must satisfy
+- [`formal-cryptographic-model.md`](protocol/docs/formal-cryptographic-model.md) — Formal cryptographic model and security-proof structure
+
+**Integration:**
 - [`relying-party-guide.md`](protocol/docs/relying-party-guide.md) — REST API integration, JWT validation, trust tiering
 - [`rp-use-case-map.md`](protocol/docs/rp-use-case-map.md) — Seven concrete integration patterns for relying parties
-- [`client-sdk-architecture.md`](protocol/docs/client-sdk-architecture.md) — Recommended architecture for any HPP client SDK
+
+**Operational:**
 - [`keys-and-genesis.md`](protocol/docs/keys-and-genesis.md) — Verifier signing keys and Genesis Epoch bootstrap
-- [`reference-verifier-architecture.md`](protocol/docs/reference-verifier-architecture.md) — Reference architecture for an HPP Verifier Service
 - [`continuity-reference.md`](protocol/docs/continuity-reference.md) — Practical Continuity Score reference
 - [`device-recovery.md`](protocol/docs/device-recovery.md) — Migration and recovery flows
 - [`ledger-architecture.md`](protocol/docs/ledger-architecture.md) — Local hash-chained ledger format
 - [`canonical-signing.md`](protocol/docs/canonical-signing.md) — Canonical-string construction rules
 - [`receipt-canon.md`](protocol/docs/receipt-canon.md) — Receipt structure and hash linkage
-- [`threat-model.md`](protocol/docs/threat-model.md) — Adversarial games and assumptions
+
+**API specs:**
+- [`protocol/openapi.yaml`](protocol/openapi.yaml) — OpenAPI 3.1 spec for the **shipping** verifier API at `hpp-verifier.onrender.com`
+- [`protocol/openapi-canonical-v1-future.yaml`](protocol/openapi-canonical-v1-future.yaml) — Canonical v1 future-state design (not yet implemented; reference only)
 
 For ready-to-use code, see [`protocol/reference-implementations/`](protocol/reference-implementations/) — Node.js and Python verification libraries, a minimal RP server, and an example integration page. An interactive simulator lives at [`protocol/tools/simulator.html`](protocol/tools/simulator.html).
 

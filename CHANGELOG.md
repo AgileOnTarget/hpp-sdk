@@ -4,6 +4,46 @@ All notable changes to this SDK are documented here. The format follows [Keep a 
 
 ---
 
+## [0.4.0] — 2026-05-02 — OpenAPI reconciled to shipping verifier; cross-refs cleaned; protocol-spec corpus expanded
+
+This release closes three follow-ups that were tagged in v0.3.0's known-issues list, and pulls four more high-leverage protocol documents from the AOT VDR.
+
+### Added — `protocol/openapi.yaml` rewritten to describe the shipping verifier
+- **`protocol/openapi.yaml`** is now an OpenAPI 3.1 spec that faithfully describes the API the production verifier at `hpp-verifier.onrender.com` actually serves: `/challenge`, `/verify` (Bearer ES256 HPP-Proof JWT), `/receipt/{receipt_id}`, `/receipts/{pubkey}`, `/session*`, `/relay/create` + `/relay/{relay_id}` (GET / POST / DELETE), `/chain/public`, `/qr`, `/health`. 13 paths, 6 reusable schemas, every structured rejection enumerated with examples (`INVALID_SIG`, `REPLAY_DETECTED`, `SITE_MISMATCH`, `EPOCH_EXPIRED`, `ASSURANCE_INSUFFICIENT`, `NPHT_RATE_EXCEEDED`).
+- The previous canonical-v1 design (`/v1/pulse`, `/v1/burn`, etc.) is preserved at **`protocol/openapi-canonical-v1-future.yaml`** with a banner clarifying that it is a future-state design, not the shipping API.
+- This closes the OpenAPI drift that was documented in v0.2.0's wire-compatibility caveat. Both the iOS Swift Package and the Website JS SDK in this repo target the surface in `openapi.yaml`.
+
+### Added — Protocol documentation (4 new files)
+Pulled from AOT VDR and converted from .docx via pandoc; metadata tables stripped (Document IDs, Author, Classification rows removed); content unchanged.
+- **`protocol/docs/canonical-protocol-spec.md`** — Platform-agnostic Canonical Protocol Reference (frozen v2.0). Six-phase protocol flow with cryptographic requirements and conformance criteria. 142 lines.
+- **`protocol/docs/security-model.md`** — Security model and threat assumptions for HPP. Trust boundaries, threat-model assumptions, security objectives. 147 lines.
+- **`protocol/docs/security-invariants.md`** — Eight platform-agnostic enforcement invariants. INV-1 through INV-8. Conformance MUST-statements. 100 lines.
+- **`protocol/docs/formal-cryptographic-model.md`** — Formal cryptographic model and security-proof structure suitable for academic and standards review. 133 lines.
+
+### Changed — `protocol/docs/relying-party-guide.md` cross-refs cleaned
+The pre-existing dead cross-references to internal VDR document IDs (`OSI8_03A_33`, `OSI8_03A_42`, `OSI8_03A_43`, `OSI8_03A_47`, `OSI8_03A_55`, `OSI8_05A_07`) have been resolved:
+- Two inline mid-document references rewritten to descriptive prose ("ZKP age-attestation extension", "the HPP iOS End-of-Life policy").
+- Section 10 "VDR Cross-Reference Index" replaced with a "Related Reading" table that points exclusively at public-repo artifacts (other docs in `protocol/docs/`, schemas in `protocol/schemas/`, reference implementations, and `openapi.yaml`).
+
+### Changed — Root README documentation index expanded
+The "Documentation" section in `README.md` was reorganized into four functional groupings (Specs and architecture, Security, Integration, Operational) and gained pointers to:
+- The four new protocol-spec docs above
+- The shipping `openapi.yaml` and the canonical-v1-future spec, with their relationship explained
+
+### Files NOT pulled this wave (with reasons)
+- `OSI8_04A_00_IDX_Protocol_Agnostic_SDK_v2_0.docx` — content is a VDR-internal reader's guide listing other `OSI8_04A_NN` documents. Most lines are "see folder X" pointers that don't have a meaningful public translation; the public README's Documentation section already serves the same purpose for external readers using the public file names. Skipped as wrong-fit.
+- `OSI8_04A_25_TEC_Canonical_API_Ref_v2_0.docx` — documents the Chrome extension's `HPP.requestPresence()` JavaScript API surface, not the protocol/verifier API. Belongs in the chrome-extension docs workstream rather than `protocol/docs/`. Deferred.
+
+### Source-file headers
+The new `openapi.yaml` carries the standard SDK YAML SPDX header (Apache-2.0 + USPTO Customer No. 224891 trademarks-reserved restatement). The four new .md files do not, matching the existing public-repo convention from v0.1.x.
+
+### Authorization trail
+- Tom directive (2026-05-02): "Please do 1, 2 and 3 in the list. Skip the support ticket." → authorizes this combined release covering OpenAPI reconciliation (item 1), cross-ref cleanup (item 2), and Wave 1 of the docx-conversion workstream (item 3).
+
+No rights added or removed vs. v0.3.0. Apache 2.0 grant, CLA terms, and patent scope unchanged.
+
+---
+
 ## [0.3.0] — 2026-05-02 — Protocol documentation corpus + reference implementations published
 
 This release pulls 20 internal documents and reference artifacts into the public SDK. The published surface now covers the canonical client SDK architecture, verifier reference architecture, Genesis Epoch bootstrap, continuity-score behavior, device recovery, integration patterns, and ready-to-use Node.js / Python verification libraries.

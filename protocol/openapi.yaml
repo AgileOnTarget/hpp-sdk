@@ -10,837 +10,887 @@
 # purposes. Reading, citing, or reimplementing from this document confers
 # no patent license under the USPTO Customer No. 224891 portfolio. See
 # PATENT-POLICY.md for the full statement. All trademarks and patent
-# rights reserved by Agile On Target LLC.
+# rights reserved by Agile On Target LLC (USPTO Customer No. 224891).
 
 openapi: 3.1.0
 info:
-  title: Human Presence Protocol Verifier API
-  version: "1.0.0"
-  description: >
-    Stable reference implementation of HPP verifier behavior.
-    This API issues epoch bound nonces, accepts signed pulses, issues verifier signed receipts,
-    and answers continuity threshold queries for relying parties.
-  x-status: Canonical MVP (Beta)
+  title: Human Presence Protocol Verifier API (Shipping)
+  version: "0.4.0"
+  summary: The HTTP surface implemented by the production HPP verifier.
+  description: |
+    This document describes the API actually exposed by the shipping HPP verifier
+    at `https://hpp-verifier.onrender.com`. It is the contract that the iOS Swift
+    Package (`ios/`) and the Website JS SDK (`website/`) in this repository
+    integrate against.
 
-# --- HPP Extension Blocks ---
+    A separate file, `openapi-canonical-v1-future.yaml`, describes a future-state
+    `/v1/*` API surface that the project intends to converge on. Until that
+    convergence ships, integrators should target the surface described here.
 
-x-versioning-strategy:
-  description: >
-    API version encoded in base path: /v1/.
-    Backward incompatible changes require new major version.
-    Backward compatible additive changes allowed within same major version.
-    Deprecated fields remain supported for at least one major version.
+    ## Core flow
 
-x-backward-compatibility:
-  description: >
-    Existing fields never change semantic meaning.
-    New optional fields may be added.
-    Fields removed only in next major version.
+    1. Client `POST /challenge` → server returns `{ nonce, epoch, site, challenge_id }`.
+    2. Client signs an HPP-Proof JWT (ES256, 64-byte raw IEEE P1363 signature)
+       and `POST /verify` with `Authorization: Bearer <jwt>` → server returns
+       `{ session_token, receipt_id, assurance }`.
+    3. Optionally, the client `POST /relay/:id` to deposit the session token
+       into a browser-side relay slot for QR-based unlock flows.
 
-x-error-codes:
-  E1000: Invalid request format
-  E1001: Invalid signature
-  E1002: Expired challenge
-  E1003: Invalid device public key
-  E1004: Invalid receipt
-  E1005: Replay detected
-  E1006: Rate limit exceeded
-  E1007: Server time unavailable
-  E1008: Internal verification failure
+    For the canonical signing and JWT details, see
+    `protocol/docs/canonical-signing.md` and `protocol/docs/core-spec.md`.
 
-x-rate-limits:
-  /v1/health:
-    limit: 60
-    window: 1 minute
-    scope: per IP
-  /v1/keys:
-    limit: 60
-    window: 1 minute
-    scope: per IP
-  /v1/nonce:
-    limit: 30
-    window: 1 minute
-    scope: per IP
-  /v1/pulse:
-    limit: 30
-    window: 1 minute
-    scope: per device_public_key
-  /v1/status:
-    limit: 60
-    window: 1 minute
-    scope: per IP
-  /v1/verify:
-    limit: 120
-    window: 1 minute
-    scope: per relying_party
-  /v1/enroll:
-    limit: 10
-    window: 1 minute
-    scope: per IP
-  /v1/burn:
-    limit: 30
-    window: 1 minute
-    scope: per device_public_key
-
-x-security-model:
-  description: >
-    Verifier holds Ed25519 signing key.
-    Clients never receive private keys.
-    All receipts are verifier-signed.
-    Relying parties verify receipts offline.
-
-x-determinism:
-  description: >
-    All timestamps returned by verifier MUST be server-time.
-    All receipts MUST include strict_window_seconds.
-    Receipt hashes MUST be reproducible byte-for-byte.
-
-# --- Servers and Tags ---
+  contact:
+    name: Agile On Target LLC
+    url: https://github.com/AgileOnTarget/hpp-sdk
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  x-uspto-customer-number: "224891"
+  x-status: Shipping reference (matches production verifier)
 
 servers:
-  - url: https://api.hpp.example
-    description: Example verifier base URL
+  - url: https://hpp-verifier.onrender.com
+    description: Reference production verifier (Render)
+  - url: http://localhost:3000
+    description: Local development server
 
 tags:
-  - name: Health
-  - name: Keys
-  - name: Enrollment
-  - name: Nonce
-  - name: Pulse
-  - name: Status
-  - name: Verify
-  - name: Burn
-
-# --- Paths ---
+  - name: attestation
+    description: Core HPP attestation flow (challenge → sign → verify).
+  - name: receipts
+    description: Verifier-issued receipts and the public hash-chained receipt log.
+  - name: session
+    description: Session-token lifecycle (extend, disconnect, poll).
+  - name: relay
+    description: Relay slots that bridge phone attestation to browser unlock.
+  - name: utility
+    description: QR generation and health checks.
 
 paths:
-  /v1/health:
-    get:
-      tags: [Health]
-      summary: Health check
-      operationId: getHealth
-      responses:
-        "200":
-          description: Service healthy
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthResponse"
-
-  /v1/keys:
-    get:
-      tags: [Keys]
-      summary: Get verifier public signing keys
-      operationId: getKeys
-      responses:
-        "200":
-          description: Public keys for verifier signature verification
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/KeysResponse"
-
-  /v1/enroll:
+  /challenge:
     post:
-      tags: [Enrollment]
-      summary: Enroll a device public key
-      operationId: postEnroll
-      security:
-        - BearerAuth: []
+      tags: [attestation]
+      summary: Issue a fresh challenge
+      description: |
+        Issues a server-authoritative `{ nonce, epoch, site, challenge_id }` tuple.
+        The challenge is registered server-side with a 300-second TTL and is
+        single-use: it is consumed atomically when the client successfully calls
+        `POST /verify`.
+
+        Rate-limited per source IP (default 60 / 60 s).
+      operationId: issueChallenge
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/EnrollRequest"
+              type: object
+              required: [hpp_ver]
+              properties:
+                hpp_ver:
+                  type: string
+                  description: HPP protocol version. Send `"1.0"`.
+                  example: "1.0"
+                age_predicate:
+                  type: object
+                  description: Optional age-gate predicate.
+                  required: [min_age]
+                  properties:
+                    min_age:
+                      type: integer
+                      minimum: 1
+                      example: 18
       responses:
         "200":
-          description: Enrollment accepted
+          description: Challenge issued.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EnrollResponse"
+                $ref: "#/components/schemas/ChallengeResponse"
         "400":
-          description: Invalid request
+          description: Missing or malformed `hpp_ver`.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/StructuredFailure"
+              example:
+                status: failure
+                reason: MISSING_FIELD
+                field: hpp_ver
         "429":
-          description: Rate limited
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+          $ref: "#/components/responses/RateLimited"
 
-  /v1/nonce:
-    get:
-      tags: [Nonce]
-      summary: Issue an epoch bound nonce for a device
-      operationId: getNonce
-      parameters:
-        - name: device_public_key
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Base64 encoded device public key
-        - name: site_origin
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Optional relying party origin to bind nonce and receipts
-      responses:
-        "200":
-          description: Nonce issued
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NonceResponse"
-        "400":
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Device not enrolled
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "429":
-          description: Rate limited
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /v1/pulse:
+  /verify:
     post:
-      tags: [Pulse]
-      summary: Submit a signed Pulse for verification
-      operationId: postPulse
+      tags: [attestation]
+      summary: Submit a signed HPP proof and obtain a session token
+      description: |
+        Executes the verifier's 11-step decision flow against a signed HPP proof.
+        Two transport variants are accepted:
+
+        **JWT path (preferred — used by both ios/ and website/ SDKs):**
+        Send the proof as `Authorization: Bearer <jwt>` with an empty JSON body.
+        The JWT is an ES256 token with `typ: HPP-Proof`, header
+        `{"alg":"ES256","kid":"<8-char compact pubkey fingerprint>","typ":"HPP-Proof"}`
+        and a sorted-keys payload containing `assurance, challenge_id, epoch, exp,
+        hpp_ver, iat, nonce, pub_key, site` (plus optional `age_min, age_qualified`).
+        The signature is the raw IEEE P1363 64-byte R‖S form (RFC 7518 §3.4).
+
+        **Legacy `{ payload, signature }` path:**
+        Send the canonical JSON payload and a base64url DER-encoded ECDSA P-256
+        signature in the request body.
+
+        On success, the client receives a session token (HMAC-SHA256, 600 s TTL by
+        default) and a chain-linked receipt UUID.
+
+        Rate-limited per public key (default 30 / 60 s).
+      operationId: verifyProof
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+            example: Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6IjgwMzdjYmUwIiwidHlwIjoiSFBQLVByb29mIn0...
+          description: |
+            `Bearer <ES256 HPP-Proof JWT>`. Required for the JWT path.
+            Mutually exclusive with the `{ payload, signature }` body path.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  description: JWT path — empty body.
+                  additionalProperties: false
+                - $ref: "#/components/schemas/LegacyVerifyBody"
+      responses:
+        "200":
+          description: Verification succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, session_token, receipt_id, assurance]
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  session_token:
+                    type: string
+                    description: HMAC-signed token. Format `<base64url(payload)>.<base64url(HMAC-SHA256)>`.
+                  receipt_id:
+                    type: string
+                    format: uuid
+                  assurance:
+                    $ref: "#/components/schemas/Assurance"
+        "400":
+          description: Malformed JWT, malformed payload, missing required fields, challenge not found, challenge expired, missing age claim.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StructuredFailure"
+        "401":
+          description: Cryptographic or policy failure (invalid signature, replay, site mismatch, epoch expired, assurance insufficient).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StructuredFailure"
+              examples:
+                INVALID_SIG:
+                  value:
+                    status: failure
+                    reason: INVALID_SIG
+                    primitive: P2
+                    invariant_ref: INV-02
+                REPLAY_DETECTED:
+                  value:
+                    status: failure
+                    reason: REPLAY_DETECTED
+                    primitive: P13
+                    invariant_ref: INV-13
+                SITE_MISMATCH:
+                  value:
+                    status: failure
+                    reason: SITE_MISMATCH
+                    primitive: P15
+                    invariant_ref: INV-15
+                EPOCH_EXPIRED:
+                  value:
+                    status: failure
+                    reason: EPOCH_EXPIRED
+                    primitive: P1
+                    invariant_ref: INV-01
+                ASSURANCE_INSUFFICIENT:
+                  value:
+                    status: failure
+                    reason: ASSURANCE_INSUFFICIENT
+                    primitive: P2
+                    invariant_ref: INV-02
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          description: Internal verifier error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StructuredFailure"
+              example:
+                status: failure
+                reason: INTERNAL_ERROR
+        "502":
+          description: Verifier cold-start. Retry after a few seconds.
+        "503":
+          description: Verifier cold-start. Retry after a few seconds.
+
+  /receipt/{receipt_id}:
+    get:
+      tags: [receipts]
+      summary: Retrieve a single chain-linked receipt
+      description: |
+        Returns the full chain-linked receipt for a given UUID.
+        Authentication: a valid session token (header, cookie, or query param).
+      operationId: getReceipt
+      parameters:
+        - in: path
+          name: receipt_id
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/SessionTokenQuery"
+        - $ref: "#/components/parameters/SessionTokenAuthHeader"
+      responses:
+        "200":
+          description: Receipt found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receipt"
+        "401":
+          $ref: "#/components/responses/SessionInvalid"
+        "404":
+          description: Receipt not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: RECEIPT_NOT_FOUND }
+
+  /receipts/{pubkey}:
+    get:
+      tags: [receipts]
+      summary: List all receipts for a public key (Session History — SH.1)
+      description: |
+        Returns every receipt that the verifier has ever issued for the given
+        public key. Authentication: a session token whose underlying receipt
+        belongs to the same public key (the SH.1 owner-only invariant).
+
+        Heavy fields (full pub_key, signature, JWT, SPKI) are stripped from the
+        per-receipt projection; only canonical-fields needed for chain
+        verification plus the optional age fields are returned.
+      operationId: listReceiptsForPubKey
+      parameters:
+        - in: path
+          name: pubkey
+          required: true
+          schema: { type: string }
+          description: Base64url X9.63 uncompressed public key (65 bytes, leading `0x04`).
+        - $ref: "#/components/parameters/SessionTokenQuery"
+        - $ref: "#/components/parameters/SessionTokenAuthHeader"
+      responses:
+        "200":
+          description: Receipts list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pub_key, count, receipts]
+                properties:
+                  pub_key: { type: string }
+                  count:   { type: integer }
+                  receipts:
+                    type: array
+                    items: { $ref: "#/components/schemas/ReceiptSummary" }
+        "401":
+          $ref: "#/components/responses/SessionInvalid"
+        "403":
+          description: Session's pub_key does not match requested pubkey.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StructuredFailure"
+              example:
+                status: failure
+                reason: PUBKEY_MISMATCH
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /session:
+    get:
+      tags: [session]
+      summary: Decode session metadata
+      description: Returns lightweight session info — receipt_id, expires_at, assurance, optional age fields.
+      operationId: getSession
+      parameters:
+        - $ref: "#/components/parameters/SessionTokenQuery"
+        - $ref: "#/components/parameters/SessionTokenAuthHeader"
+      responses:
+        "200":
+          description: Session metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [receipt_id, expires_at, assurance]
+                properties:
+                  receipt_id:        { type: string, format: uuid }
+                  expires_at:        { type: integer, description: Unix seconds. }
+                  assurance:         { $ref: "#/components/schemas/Assurance" }
+                  age_qualified:     { type: boolean }
+                  age_predicate_min: { type: integer }
+        "401":
+          $ref: "#/components/responses/SessionInvalid"
+
+  /session/extend:
+    post:
+      tags: [session]
+      summary: Extend a session by issuing a fresh token
+      description: |
+        Issues a fresh session token with a renewed 600 s TTL, reusing the
+        underlying receipt and assurance. The old token is blacklisted.
+
+        Called by the iOS app after a local biometric re-authentication.
+      operationId: extendSession
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PulseRequest"
+              type: object
+              required: [session_token]
+              properties:
+                session_token: { type: string }
       responses:
         "200":
-          description: Pulse accepted or rejected with signed receipt
+          description: Session extended.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PulseResponse"
+                type: object
+                required: [session_token, expires_at]
+                properties:
+                  session_token: { type: string }
+                  expires_at:    { type: integer }
         "400":
-          description: Invalid request or verification failure
+          description: Missing token.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Device not enrolled
+                type: object
+                properties:
+                  error: { type: string, example: MISSING_TOKEN }
+        "401":
+          description: Invalid token.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Nonce already used or epoch mismatch
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "429":
-          description: Rate limited
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                type: object
+                properties:
+                  error: { type: string, example: INVALID_TOKEN }
 
-  /v1/status/{device_public_key}:
+  /session/poll:
     get:
-      tags: [Status]
-      summary: Get continuity status and credit balance for a device
-      operationId: getStatus
+      tags: [session]
+      summary: Poll for an extended session
+      description: |
+        Browser polls this every 10 s. If the iOS app extended the session
+        recently (within the last 120 s), returns the new token; otherwise
+        returns `{ extended: false }`.
+      operationId: pollSession
       parameters:
-        - name: device_public_key
-          in: path
+        - in: query
+          name: session_token
           required: true
-          schema:
-            type: string
-          description: Base64 encoded device public key
-        - name: site_origin
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Optional relying party origin
+          schema: { type: string }
       responses:
         "200":
-          description: Current status
+          description: Poll result.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StatusResponse"
-        "404":
-          description: Device not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "429":
-          description: Rate limited
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                oneOf:
+                  - type: object
+                    required: [extended]
+                    properties:
+                      extended: { type: boolean, enum: [false] }
+                  - type: object
+                    required: [extended, session_token, expires_at]
+                    properties:
+                      extended:      { type: boolean, enum: [true] }
+                      session_token: { type: string }
+                      expires_at:    { type: integer }
 
-  /v1/verify/{device_public_key}:
-    get:
-      tags: [Verify]
-      summary: Verify whether a device meets a continuity threshold
-      operationId: getVerifyThreshold
-      parameters:
-        - name: device_public_key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Base64 encoded device public key
-        - name: threshold
-          in: query
-          required: true
-          schema:
-            type: integer
-            minimum: 0
-          description: Required continuity score threshold
-        - name: site_origin
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Required when site binding is enabled
-        - name: signed
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: false
-          description: If true, include an optional signed assertion object
-      responses:
-        "200":
-          description: Threshold result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VerifyResponse"
-        "400":
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Device not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "429":
-          description: Rate limited
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /v1/burn:
+  /session/disconnect:
     post:
-      tags: [Burn]
-      summary: Burn credits for a relying party action
-      operationId: postBurn
+      tags: [session]
+      summary: Revoke a session token
+      description: |
+        Best-effort. The token is blacklisted for 600 s if valid; invalid tokens
+        are silently ignored. Designed to be invoked via `navigator.sendBeacon`
+        from a browser `beforeunload` handler.
+      operationId: disconnectSession
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/BurnRequest"
+              type: object
+              required: [session_token]
+              properties:
+                session_token: { type: string }
       responses:
         "200":
-          description: Burn accepted or rejected with signed receipt
+          description: Disconnected.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BurnResponse"
+                type: object
+                properties:
+                  status: { type: string, example: disconnected }
         "400":
-          description: Invalid request or verification failure
+          description: Missing token.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Device not enrolled
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Nonce already used or epoch mismatch
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "429":
-          description: Rate limited
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                type: object
+                properties:
+                  error: { type: string, example: SESSION_TOKEN_MISSING }
 
-# --- Components ---
+  /relay/create:
+    post:
+      tags: [relay]
+      summary: Create a new relay slot
+      description: |
+        Creates an empty relay slot with a 600 s TTL. The browser polls the
+        slot's `GET /relay/{relay_id}` endpoint until an iOS device deposits a
+        session token via `POST /relay/{relay_id}`.
+      operationId: createRelay
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200":
+          description: Relay slot created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [relay_id]
+                properties:
+                  relay_id:
+                    type: string
+                    description: 32-char hex.
+                    pattern: "^[0-9a-f]{32}$"
+
+  /relay/{relay_id}:
+    parameters:
+      - in: path
+        name: relay_id
+        required: true
+        schema: { type: string, pattern: "^[0-9a-f]{32}$" }
+    get:
+      tags: [relay]
+      summary: Poll a relay slot
+      description: Browsers poll this endpoint every 2 seconds. Always returns 200 with a `status` discriminator.
+      operationId: pollRelay
+      responses:
+        "200":
+          description: Relay state.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required: [status]
+                    properties:
+                      status: { type: string, enum: [waiting, expired, not_found] }
+                  - type: object
+                    required: [status, session_token]
+                    properties:
+                      status:        { type: string, enum: [ready] }
+                      session_token: { type: string }
+    post:
+      tags: [relay]
+      summary: Deposit a session token into a relay slot
+      description: |
+        Called by the iOS app after a successful `POST /verify`. The session
+        token is verified server-side before it is stored, so a malicious QR
+        cannot inject an arbitrary token.
+      operationId: fulfillRelay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_token]
+              properties:
+                session_token: { type: string }
+      responses:
+        "200":
+          description: Relay fulfilled.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+        "400":
+          description: Token missing.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: SESSION_TOKEN_MISSING }
+        "401":
+          description: Token failed verification.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: SESSION_INVALID }
+        "404":
+          description: Relay slot not found or expired.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: RELAY_NOT_FOUND_OR_EXPIRED }
+    delete:
+      tags: [relay]
+      summary: Disconnect a relay (and optionally blacklist a session token)
+      operationId: disconnectRelay
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_token: { type: string, description: If provided, blacklisted for 600 s. }
+      responses:
+        "200":
+          description: Disconnected.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: disconnected }
+
+  /chain/public:
+    get:
+      tags: [receipts]
+      summary: Public projection of the global receipt chain
+      description: |
+        Returns a public, sanitized projection of the global receipt chain
+        — only the fields needed to verify hash-chain integrity. No public
+        keys, no nonces, no signatures.
+      operationId: getPublicChain
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        "200":
+          description: Chain page.
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [total, count, offset, chain]
+                properties:
+                  total:  { type: integer }
+                  count:  { type: integer }
+                  offset: { type: integer }
+                  chain:
+                    type: array
+                    items:
+                      type: object
+                      required: [index, receipt_hash, prev_receipt_hash, server_epoch]
+                      properties:
+                        index:             { type: integer }
+                        receipt_hash:      { type: string, description: SHA-256 hex. }
+                        prev_receipt_hash: { type: string, description: SHA-256 hex, or `GENESIS`. }
+                        server_epoch:      { type: integer }
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /qr:
+    get:
+      tags: [utility]
+      summary: Render a PNG QR code encoding an HPP endpoint registration payload
+      description: |
+        Returns a 400×400 PNG QR code at error-correction level H. The encoded
+        payload is JSON: `{ verifier_url, site, hpp_ver, session_duration,
+        relay_id?, age_predicate? }`.
+      operationId: getQR
+      parameters:
+        - in: query
+          name: relay_id
+          schema: { type: string }
+          description: If provided, baked into the QR for the locked-page unlock flow.
+        - in: query
+          name: verifier_url
+          schema: { type: string, format: uri }
+          description: Override target verifier URL. Must be http or https.
+        - in: query
+          name: site
+          schema: { type: string }
+          description: Override site identifier. Defaults to the hostname of `verifier_url`.
+        - in: query
+          name: session_duration
+          schema: { type: integer, default: 600 }
+        - in: query
+          name: age_predicate_min_age
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: PNG.
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        "400":
+          description: Invalid `verifier_url`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:   { type: string, example: INVALID_VERIFIER_URL }
+                  message: { type: string }
+
+  /health:
+    get:
+      tags: [utility]
+      summary: Liveness probe
+      description: Returns 200 when the verifier is up. Used by deployment platforms and integration tests.
+      operationId: health
+      responses:
+        "200":
+          description: Verifier is up.
+          content:
+            application/json:
+              schema:
+                type: object
 
 components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      description: >
-        Bearer token for authenticated endpoints.
-        Used for enrollment and administrative operations.
+  parameters:
+    SessionTokenQuery:
+      in: query
+      name: session_token
+      schema: { type: string }
+      description: "Session token (alternative to `Authorization: Bearer` and cookie)."
+    SessionTokenAuthHeader:
+      in: header
+      name: Authorization
+      schema: { type: string, example: "Bearer <session_token>" }
+      description: |
+        Either a session token as `Bearer <token>` or, on `/verify` only, an
+        ES256 HPP-Proof JWT.
+
+  responses:
+    RateLimited:
+      description: |
+        NPHT rate-limit exceeded. The response carries a `Retry-After` header
+        (seconds) and a structured body identifying the bound that triggered.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StructuredFailure"
+          example:
+            status: failure
+            reason: NPHT_RATE_EXCEEDED
+            primitive: NPHT
+            invariant_ref: INV-NPHT-RATE
+            bound:
+              scope: per_ip
+              max: 60
+              window_ms: 60000
+            retry_after_ms: 8421
+
+    SessionInvalid:
+      description: Session-token problem.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [valid, reason]
+            properties:
+              valid:  { type: boolean, enum: [false] }
+              reason:
+                type: string
+                enum:
+                  - SESSION_ABSENT
+                  - SESSION_INVALID
+                  - SESSION_EXPIRED
+                  - SESSION_DISCONNECTED
+                  - SESSION_RECEIPT_NOT_FOUND
 
   schemas:
-    HealthResponse:
-      type: object
-      required: [status, verifier_time, service, version]
-      additionalProperties: false
-      properties:
-        status:
-          type: string
-          enum: [ok]
-        verifier_time:
-          type: integer
-          description: Verifier current Unix time
-        service:
-          type: string
-        version:
-          type: string
+    Assurance:
+      type: string
+      description: Authentication factor that produced the proof.
+      enum: [BIOMETRIC_FACE, BIOMETRIC_TOUCH, PASSCODE]
 
-    KeysResponse:
+    ChallengeResponse:
       type: object
-      required: [keys]
-      additionalProperties: false
+      required: [nonce, epoch, site, challenge_id]
       properties:
-        keys:
-          type: array
-          items:
-            $ref: "#/components/schemas/VerifierPublicKey"
-
-    VerifierPublicKey:
-      type: object
-      required: [verifier_key_id, alg, public_key, not_before, not_after]
-      additionalProperties: false
-      properties:
-        verifier_key_id:
-          type: string
-        alg:
-          type: string
-          description: Algorithm identifier, informational
-        public_key:
-          type: string
-          description: Base64 encoded public key
-        not_before:
-          type: integer
-        not_after:
-          type: integer
-
-    EnrollRequest:
-      type: object
-      required: [device_public_key]
-      additionalProperties: false
-      properties:
-        device_public_key:
-          type: string
-          description: Base64 encoded device public key
-        device_attestation:
-          $ref: "#/components/schemas/DeviceAttestation"
-
-    DeviceAttestation:
-      type: object
-      required: [format, payload]
-      additionalProperties: false
-      properties:
-        format:
-          type: string
-          description: Attestation format identifier
-          examples: [apple_attestation_v1]
-        payload:
-          type: string
-          description: Base64 encoded attestation payload
-
-    EnrollResponse:
-      type: object
-      required: [enrolled, device_public_key, enrolled_at, attestation_status, epoch]
-      additionalProperties: false
-      properties:
-        enrolled:
-          type: boolean
-        device_public_key:
-          type: string
-        enrolled_at:
-          type: integer
-        attestation_status:
-          type: string
-          enum: [verified, unverified, unsupported]
-        epoch:
-          $ref: "#/components/schemas/EpochWindow"
-
-    EpochWindow:
-      type: object
-      required: [epoch_id, epoch_start, epoch_end]
-      additionalProperties: false
-      properties:
-        epoch_id:
-          type: string
-          description: UTC epoch identifier, default YYYY-MM-DD
-        epoch_start:
-          type: integer
-          description: Unix seconds epoch start in UTC
-        epoch_end:
-          type: integer
-          description: Unix seconds epoch end in UTC
-        epoch_length_seconds:
-          type: integer
-          description: Epoch length in seconds
-
-    NonceResponse:
-      type: object
-      required:
-        - device_public_key
-        - epoch
-        - nonce
-        - nonce_issued_at
-        - nonce_expires_at
-        - verifier_time
-        - strict_window_seconds
-        - verifier_base_url
-      additionalProperties: false
-      properties:
-        device_public_key:
-          type: string
-        epoch:
-          $ref: "#/components/schemas/EpochWindow"
         nonce:
           type: string
-          description: Base64 encoded nonce
-        nonce_issued_at:
-          type: integer
-        nonce_expires_at:
-          type: integer
-        verifier_time:
-          type: integer
-        strict_window_seconds:
-          type: integer
-          minimum: 1
-        verifier_base_url:
-          type: string
-        site_origin:
-          type: string
-          default: ""
-
-    PulseRequest:
-      type: object
-      required:
-        - pulse_version
-        - device_public_key
-        - epoch_id
-        - nonce
-        - client_confirmed_at
-        - issued_at
-        - biometric_success
-        - signature
-      additionalProperties: false
-      properties:
-        pulse_version:
-          type: integer
-          enum: [1]
-        device_public_key:
-          type: string
-        epoch_id:
-          type: string
-        nonce:
-          type: string
-        client_confirmed_at:
-          type: integer
-          description: Unix seconds captured at biometric success
-        issued_at:
-          type: integer
-          description: Unix seconds when client formed submission
-        biometric_success:
-          type: boolean
-        site_origin:
-          type: string
-          default: ""
-        signature:
-          type: string
-          description: Base64 encoded device signature over canonical pulse string
-
-    PulseResponse:
-      type: object
-      required: [status, receipt]
-      additionalProperties: false
-      properties:
-        status:
-          type: string
-          enum: [accepted, rejected]
-        rejection_reason:
-          type: string
-          description: Present when status is rejected
-        receipt:
-          $ref: "#/components/schemas/ReceiptV1"
-
-    StatusResponse:
-      type: object
-      required: [device_public_key, verifier_time, epoch, continuity, credits]
-      additionalProperties: false
-      properties:
-        device_public_key:
-          type: string
-        verifier_time:
-          type: integer
+          description: 64 hex chars (256-bit random).
+          pattern: "^[0-9a-f]{64}$"
         epoch:
+          type: integer
+          description: Server-authoritative Unix seconds.
+        site:
+          type: string
+          description: Site identifier the verifier issued (matches the verifier's `SITE` env var).
+        challenge_id:
+          type: string
+          format: uuid
+        age_predicate:
           type: object
-          required: [epoch_id]
-          additionalProperties: false
+          description: Echoed back when the request included an age predicate.
           properties:
-            epoch_id:
+            min_age: { type: integer }
+
+    LegacyVerifyBody:
+      type: object
+      required: [payload, signature]
+      properties:
+        payload:
+          type: object
+          required: [challenge_id, nonce, epoch, pub_key, assurance, hpp_ver, site]
+          properties:
+            challenge_id:  { type: string, format: uuid }
+            nonce:         { type: string, pattern: "^[0-9a-f]{64}$" }
+            epoch:         { type: integer }
+            pub_key:
               type: string
-        continuity:
-          $ref: "#/components/schemas/ContinuityStatus"
-        credits:
-          $ref: "#/components/schemas/CreditsStatus"
-
-    ContinuityStatus:
-      type: object
-      required: [score, last_epoch_id, state, grace_remaining, bleed_active, cliff_epoch_id]
-      additionalProperties: false
-      properties:
-        score:
-          type: integer
-          minimum: 0
-        last_epoch_id:
-          type: string
-        state:
-          type: string
-          enum: [active, abandoned]
-        grace_remaining:
-          type: integer
-          minimum: 0
-        bleed_active:
-          type: boolean
-        cliff_epoch_id:
-          type: string
-
-    CreditsStatus:
-      type: object
-      required: [balance]
-      additionalProperties: false
-      properties:
-        balance:
-          type: integer
-          minimum: 0
-
-    VerifyResponse:
-      type: object
-      required:
-        - device_public_key
-        - threshold
-        - meets_threshold
-        - score
-        - verifier_time
-        - verifier_base_url
-      additionalProperties: false
-      properties:
-        device_public_key:
-          type: string
-        threshold:
-          type: integer
-          minimum: 0
-        meets_threshold:
-          type: boolean
-        score:
-          type: integer
-          minimum: 0
-        verifier_time:
-          type: integer
-        verifier_base_url:
-          type: string
-        site_origin:
-          type: string
-          default: ""
-        assertion:
-          $ref: "#/components/schemas/OptionalAssertionV1"
-
-    OptionalAssertionV1:
-      type: object
-      required: [assertion_version, assertion_id, assertion_hash, assertion_signature, verifier_key_id]
-      additionalProperties: false
-      properties:
-        assertion_version:
-          type: integer
-          enum: [1]
-        assertion_id:
-          type: string
-        assertion_hash:
-          type: string
-          description: Base64 encoded SHA-256 hash over canonical assertion string
-        assertion_signature:
-          type: string
-          description: Base64 encoded verifier signature over assertion_hash
-        verifier_key_id:
-          type: string
-
-    BurnRequest:
-      type: object
-      required:
-        - burn_version
-        - device_public_key
-        - burn_id
-        - amount
-        - issued_at
-        - client_confirmed_at
-        - nonce
-        - signature
-      additionalProperties: false
-      properties:
-        burn_version:
-          type: integer
-          enum: [1]
-        device_public_key:
-          type: string
-        site_origin:
-          type: string
-          default: ""
-        burn_id:
-          type: string
-          description: Client generated unique burn identifier
-        amount:
-          type: integer
-          minimum: 1
-        issued_at:
-          type: integer
-        client_confirmed_at:
-          type: integer
-        nonce:
-          type: string
+              description: Base64url X9.63 EC point (uncompressed or compressed).
+            assurance:     { $ref: "#/components/schemas/Assurance" }
+            hpp_ver:       { type: string }
+            site:          { type: string }
+            age_qualified: { type: boolean, description: Required if the challenge had an age predicate. }
         signature:
           type: string
-          description: Base64 encoded device signature over canonical burn string
+          description: Base64url DER-encoded ECDSA P-256 signature over the canonical payload bytes.
 
-    BurnResponse:
+    StructuredFailure:
       type: object
-      required: [status, receipt]
-      additionalProperties: false
+      required: [status, reason]
       properties:
-        status:
+        status:        { type: string, enum: [failure] }
+        reason:        { type: string }
+        field:         { type: string }
+        fields:
+          type: array
+          items: { type: string }
+        primitive:
           type: string
-          enum: [accepted, rejected]
-        rejection_reason:
+          description: "HPP primitive identifier (e.g. `P2`, `NPHT`)."
+        invariant_ref:
           type: string
-        receipt:
-          $ref: "#/components/schemas/ReceiptV1"
+          description: "HPP invariant identifier (e.g. `INV-02`, `INV-13`)."
+        bound:
+          type: object
+          description: "For `NPHT_RATE_EXCEEDED`, the bound that triggered."
+          properties:
+            scope:     { type: string, enum: [per_ip, per_pubkey, per_relying_party] }
+            max:       { type: integer }
+            window_ms: { type: integer }
+        retry_after_ms: { type: integer }
 
-    ReceiptV1:
+    Receipt:
       type: object
       required:
-        - receipt_version
         - receipt_id
-        - receipt_type
-        - status
-        - device_public_key
-        - epoch_id
+        - challenge_id
         - nonce
-        - issued_at
-        - client_confirmed_at
-        - submit_received_at
-        - verifier_time
-        - strict_window_seconds
-        - verifier_base_url
-        - site_origin
-        - score_after
-        - credits_after
-        - delta_credits
+        - epoch
+        - assurance
+        - pub_key_fingerprint
+        - server_epoch
         - prev_receipt_hash
-        - verifier_key_id
         - receipt_hash
-        - receipt_signature
-      additionalProperties: false
+        - pub_key
+        - hpp_ver
+        - site
       properties:
-        receipt_version:
-          type: integer
-          enum: [1]
-        receipt_id:
+        receipt_id:          { type: string, format: uuid }
+        challenge_id:        { type: string, format: uuid }
+        nonce:               { type: string, pattern: "^[0-9a-f]{64}$" }
+        epoch:               { type: integer }
+        assurance:           { $ref: "#/components/schemas/Assurance" }
+        pub_key_fingerprint: { type: string, description: Last 8 hex chars of SHA-256(pub_key). }
+        server_epoch:        { type: integer }
+        prev_receipt_hash:   { type: string, description: SHA-256 hex, or `GENESIS`. }
+        receipt_hash:        { type: string, description: SHA-256 hex over canonical fields. }
+        pub_key:             { type: string }
+        pub_key_spki:        { type: string, description: Base64 SPKI DER (for WebCrypto importKey). }
+        signature:
           type: string
-        receipt_type:
+          nullable: true
+          description: Base64url DER ECDSA (legacy path) — null on JWT path.
+        jwt:
           type: string
-          description: pulse_accept, pulse_reject, burn_accept, burn_reject
-        status:
-          type: string
-          enum: [accepted, rejected]
-        device_public_key:
-          type: string
-        epoch_id:
-          type: string
-        nonce:
-          type: string
-        issued_at:
-          type: integer
-        client_confirmed_at:
-          type: integer
-        submit_received_at:
-          type: integer
-        verifier_time:
-          type: integer
-        strict_window_seconds:
-          type: integer
-          minimum: 1
-        verifier_base_url:
-          type: string
-        site_origin:
-          type: string
-        score_after:
-          type: integer
-          minimum: 0
-        credits_after:
-          type: integer
-          minimum: 0
-        delta_credits:
-          type: integer
-          description: Positive for issuance, negative for burns, zero for rejects
-        prev_receipt_hash:
-          type: string
-          description: Base64 encoded previous receipt hash or empty string
-        verifier_key_id:
-          type: string
-        receipt_hash:
-          type: string
-          description: Base64 encoded SHA-256 hash of canonical receipt string
-        receipt_signature:
-          type: string
-          description: Base64 encoded verifier signature over receipt_hash
+          nullable: true
+          description: Full ES256 HPP-Proof JWT (JWT path) — null on legacy path.
+        hpp_ver:             { type: string }
+        site:                { type: string }
+        age_predicate_min:   { type: integer }
+        age_qualified:       { type: boolean }
 
-    ErrorResponse:
+    ReceiptSummary:
       type: object
-      required: [code, message, request_id]
-      additionalProperties: false
+      description: Sanitized projection used by `/receipts/{pubkey}`.
+      required:
+        - receipt_id
+        - challenge_id
+        - nonce
+        - epoch
+        - assurance
+        - pub_key_fingerprint
+        - server_epoch
+        - prev_receipt_hash
+        - receipt_hash
+        - site
       properties:
-        code:
-          type: string
-          description: Error code from x-error-codes registry (e.g. E1000)
-        message:
-          type: string
-          description: Human readable error description
-        request_id:
-          type: string
-          description: Unique identifier for this request, for support tracing
+        receipt_id:          { type: string, format: uuid }
+        challenge_id:        { type: string, format: uuid }
+        nonce:               { type: string }
+        epoch:               { type: integer }
+        assurance:           { $ref: "#/components/schemas/Assurance" }
+        pub_key_fingerprint: { type: string }
+        server_epoch:        { type: integer }
+        prev_receipt_hash:   { type: string }
+        receipt_hash:        { type: string }
+        site:                { type: string }
+        age_predicate_min:   { type: integer }
+        age_qualified:       { type: boolean }

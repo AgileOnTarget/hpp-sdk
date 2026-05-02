@@ -189,9 +189,9 @@ Verifier --- not the client.
                                      accessible. Burn-gating premium API
                                      calls adds economic friction.
 
-  **Age-restricted   **TIER_0 + Age  Combine presence verification with ZKP
-  content**          ZKP**           age attestation (OSI8_03A_55). No age
-                                     data collected by RP.
+  **Age-restricted   **TIER_0 + Age  Combine presence verification with a
+  content**          ZKP**           ZKP age-attestation extension. No age
+                                     data is collected by the RP.
   ------------------ --------------- ----------------------------------------
 
 **3. Integration Flow**
@@ -600,8 +600,8 @@ each error code appropriately:
                                             limit.             
 
   **ERR_CLIENT_OUTDATED**        **426**    User's HPP client  Display: "Please update your HPP
-                                            version is below   app." Per OSI8_03A_33 EOL Policy.
-                                            minimum supported. 
+                                            version is below   app." Per the HPP iOS
+                                            minimum supported. End-of-Life policy.
   ------------------------------ ---------- ------------------ ---------------------------------
 
 **6.1 Developer Best Practices: Graceful Failure Paths**
@@ -807,35 +807,25 @@ chain.
                      investment. Fraud economics collapse.
   ------------------ ----------------------------------------------------
 
-**10. VDR Cross-Reference Index**
+**10. Related Reading**
 
-  ----------------- --------------------------- ---------------------------------
-  **Doc ID**        **Document**                **Relationship**
+For deeper background on the topics referenced in this guide, see the
+following documents and artifacts in the public SDK:
 
-  **OSI8_02A_02**   Protocol Invariants         INV-6 (Atomic Burns), INV-7
-                    Specification               (Idempotent), INV-8 (Nonce
-                                                Freshness) enforced in RP flow
-
-  **OSI8_02B_10**   Error Code Registry         Canonical error codes referenced
-                                                in Section 6
-
-  **OSI8_03A_33**   iOS End of Life Policy      ERR_CLIENT_OUTDATED (HTTP 426)
-                                                enforcement
-
-  **OSI8_03A_42**   J4 Relying Party Proof      Interactive demonstration of
-                    Simulator                   threshold verification flow
-
-  **OSI8_03A_43**   J5 Credit Burn Simulator    Interactive demonstration of
-                                                burn-and-unlock flow
-
-  **OSI8_03A_47**   Journey Rosetta Stone       Screen-to-patent mapping for J4
-                                                and J5
-
-  **OSI8_03A_55**   Age Verification ZKP        ZKP age attestation extension for
-                                                age-restricted RP use cases
-
-  **OSI8_05A_07**   HPP Privacy Architecture    Privacy guarantees underlying the
-                                                zero-PII RP model
-  ----------------- --------------------------- ---------------------------------
+| Document | Relationship to this guide |
+|---|---|
+| [`protocol/openapi.yaml`](../openapi.yaml) | Machine-readable spec for the shipping verifier API (the same surface this document describes in prose). |
+| [`protocol/docs/core-spec.md`](core-spec.md) | Formal protocol model; the source of truth that prose like this guide is written against. |
+| [`protocol/docs/canonical-signing.md`](canonical-signing.md) | Canonical-string construction and signing rules referenced by the JWT path. |
+| [`protocol/docs/threat-model.md`](threat-model.md) | Adversarial games and assumptions; gives the security context behind tier choices. |
+| [`protocol/docs/receipt-canon.md`](receipt-canon.md) | Receipt structure, hash linkage, and chain-verification rules. |
+| [`protocol/docs/rp-use-case-map.md`](rp-use-case-map.md) | Concrete relying-party integration patterns mapped to tier choices. |
+| [`protocol/docs/architecture.md`](architecture.md) | System architecture overview. |
+| [`protocol/schemas/error-codes-v1.json`](../schemas/error-codes-v1.json) | Canonical error-code registry referenced by Section 6. |
+| [`protocol/schemas/`](../schemas/) | JSON Schemas for request and response payloads (challenge, attest-request, presence-cert). |
+| [`protocol/reference-implementations/verify-node.js`](../reference-implementations/verify-node.js) | Node.js reference verifier for relying-party backends. |
+| [`protocol/reference-implementations/verify-python.py`](../reference-implementations/verify-python.py) | Python reference verifier. |
+| [`protocol/reference-implementations/example-rp-server.js`](../reference-implementations/example-rp-server.js) | Minimal working RP backend. |
+| [`protocol/reference-implementations/example-integration.html`](../reference-implementations/example-integration.html) | Minimal working RP front-end. |
 
 **END OF DOCUMENT**
