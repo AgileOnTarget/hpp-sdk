@@ -53,10 +53,10 @@ Every file went through the same pipeline:
 
 1. **Pandoc conversion** — `.docx` → GFM `.md` via `pandoc -f docx -t gfm --wrap=none`. Preserves bold/italic, lists, tables; passes through some HTML preamble for documents that opened with single-cell `<table>` "stack" headers.
 2. **PII scrub** — sed-based, applied to every file:
-   - `noreply@humanpresenceprotocol.com` lines deleted
-   - `` lines deleted
-   - `` / `` patterns stripped
-   - `Agile On Target LLC` / `Agile On Target LLC` / `Agile On Target LLC` → `Agile On Target LLC`
+   - Personal email addresses deleted from footers
+   - Personal phone-number lines deleted
+   - City-name patterns stripped from footers and surrounding pipes
+   - Personal-name attributions rewritten to "Agile On Target LLC"
 3. **Classification scrub** — Python-based, applied to every file:
    - Markdown table rows like `| **Classification** | Confidential ... |` deleted
    - `| **Status** | ... M&A Grade ... |` rows deleted
@@ -64,7 +64,7 @@ Every file went through the same pipeline:
    - `Document ID: OSI8_... | Classification: Attorney Work Product / Privileged & Confidential` footers deleted
    - `*Human Presence Protocol | ... | Confidential*` italicized footers deleted
 4. **Surgical edits** — for `ios/docs/faq.md` only: section heading "Acquisition Diligence" renamed to "Deployment Roadmap"; intro phrase "engineers, security reviewers, product evaluators, and acquirer technical diligence teams" rewritten to drop the acquirer-specific framing; "common diligence questions" → "common evaluation questions". Q17/Q18 content preserved (it's general developer-facing material on iOS-only scoping and platform-agnostic invariants, useful even outside an acquisition framing).
-5. **Final whole-repo grep** — confirmed clean: zero hits across `1808|Barden|Charlotte|28226|Thomas Elliott|Agile On Target LLC|Agile On Target LLC|Tom.Friend@|tom.friend@|980-939|Acquisition Track|Attorney Work Product|M&A Grade` patterns. The only remaining matches for `Confidential` / `confidentiality` are legitimate cryptographic terms (the "C" in CIA, "transport confidentiality" in TLS-vs-signature comparison).
+5. **Final whole-repo grep** — confirmed clean: zero hits across the full PII pattern set (street, city, ZIP, country, personal name in three forms, personal email pattern, personal phone-number pattern) and the full classification pattern set (Confidential, M&A, Acquisition Track, Attorney Work Product). The only remaining matches for `Confidential` / `confidentiality` are legitimate cryptographic terms (the "C" in CIA, "transport confidentiality" in TLS-vs-signature comparison).
 
 ### Files NOT pulled in this release (with reasons)
 
