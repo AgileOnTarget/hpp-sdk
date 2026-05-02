@@ -1,6 +1,6 @@
 # Patent Notice
 
-**Patent Holder:** Agile On Target LLC (Jurisdiction: North Carolina, United States)
+**Patent Holder:** Agile On Target LLC
 **USPTO Customer Number:** 224891
 **Portfolio:** 42 provisional patent applications filed February 14 – March 28, 2026. 1,429 claims across 32 protocol primitives, 15 invariants, and 48 capability enablers.
 **Non-provisional conversion deadline:** February 14, 2027.
@@ -117,4 +117,4 @@ This document is **informational** and does not constitute legal advice. Parties
 
 ---
 
-*Agile On Target LLC — North Carolina, United States — USPTO Customer No. 224891*
+*Agile On Target LLC — USPTO Customer No. 224891*

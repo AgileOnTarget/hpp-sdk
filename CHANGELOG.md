@@ -69,7 +69,7 @@ No rights added or removed vs. v0.1.3 for the Apache 2.0 grant, the CLA's substa
 Purpose: close every legal-hygiene gap a corp-dev counsel's diligence pass would flag. No rights added or removed vs. v0.1.2. Shipping-completeness, attribution consistency, and disclosure clarity all upgraded.
 
 ### Added
-- **`AUTHORS`** — names Agile On Target LLC as sole copyright holder; names Agile On Target LLC as the authorized signatory; documents the CLA-consolidated posture (contributors appear in git log, copyright flows to AOT LLC). A single file an acquirer's counsel can reference for chain-of-title.
+- **`AUTHORS`** — names Agile On Target LLC as sole copyright holder and points to USPTO records as the canonical source for inventor and authorized-signatory attribution; documents the CLA-consolidated posture (contributors appear in git log, copyright flows to AOT LLC). A single file an acquirer's counsel can reference for chain-of-title.
 - **`THIRD-PARTY-LICENSES.md`** — full inventory of every file shipping in v0.1.3 with third-party-status classification. Current state: **zero unmodified third-party components**. Documents the forward-looking posture for Phase 2 (psl upstream MIT, QR rendering libraries, Swift Package transitives) so there's a standing framework when the first dep is added.
 - **Apache 2.0 SPDX headers on every source file:**
   - 9 JavaScript files in `chrome-extension/` (`background.js`, `content.js`, `hpp-api.js`, `popup.js`, `options.js` + 4 `lib/*.js`)
@@ -91,7 +91,7 @@ Purpose: close every legal-hygiene gap a corp-dev counsel's diligence pass would
 ### Audit trail
 - **Cross-file entity-name consistency verified:** `Agile On Target LLC` used consistently across all legal-bearing files. No drift to "AOT LLC" / "Agile-On-Target" / other variants in normative text. (The shorthand "AOT LLC" survives in two descriptive annotations in README and THIRD-PARTY-LICENSES but is unambiguous in context and points to the same legal entity.)
 - **USPTO Customer No. 224891** cited consistently.
-- **Jurisdiction** (North Carolina, United States) cited consistently in LICENSE APPENDIX, PATENT-NOTICE, PATENT-POLICY, CLA §8, AUTHORS.
+- **Jurisdiction** cited consistently in PATENT-POLICY and CLA §8 governing-law clauses.
 - **Apache 2.0 + patent-narrowing language** consistent across LICENSE APPENDIX, NOTICE, PATENT-NOTICE §1–§2, PATENT-POLICY §2, README.
 
 ### What this release does NOT do
@@ -128,7 +128,7 @@ No rights are added or removed vs. v0.1.1 for the Apache 2.0 grant itself. The u
 ## [0.1.1] — 2026-04-17 — Patent / trademark / CLA hardening
 
 ### Added
-- **`NOTICE`** — Apache 2.0 attribution file naming Agile On Target LLC (North Carolina) as copyright owner and patent holder. Enumerates the four things the Apache 2.0 patent grant does NOT authorize (commercial production deployment, OEM embedding, HPP-as-a-service, ground-up reimplementation) and the defensive-termination clause. Claims trademark on "HPP", "Human Presence Protocol", "Reasoned Authentication Demonstration", "RAD".
+- **`NOTICE`** — Apache 2.0 attribution file naming Agile On Target LLC as copyright owner and patent holder. Enumerates the four things the Apache 2.0 patent grant does NOT authorize (commercial production deployment, OEM embedding, HPP-as-a-service, ground-up reimplementation) and the defensive-termination clause. Claims trademark on "HPP", "Human Presence Protocol", "Reasoned Authentication Demonstration", "RAD".
 - **`CLA.md`** — Contributor License Agreement. Every contribution grants Agile On Target LLC copyright + patent licenses in the contribution, consolidating the portfolio. PR submission is the signing event; organizations with IP-assignment policies get a one-line statement in the PR description.
 - **Patent-scope note in `LICENSE`** — appended to the Apache 2.0 boilerplate APPENDIX so any file rendering the LICENSE sees the narrowing language inline. Fills in Copyright holder: `Agile On Target LLC`, year `2026`.
 

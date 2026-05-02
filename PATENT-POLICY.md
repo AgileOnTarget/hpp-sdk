@@ -118,4 +118,4 @@ Agile On Target LLC reserves the right to clarify, supplement, or replace this p
 
 ---
 
-*Agile On Target LLC — USPTO Customer No. 224891 — Jurisdiction: North Carolina — April 2026*
+*Agile On Target LLC — USPTO Customer No. 224891 — April 2026*

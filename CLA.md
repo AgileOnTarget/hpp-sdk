@@ -1,7 +1,7 @@
 # Contributor License Agreement
 
 **Project:** Human Presence Protocol SDK (this repository)
-**Licensor:** Agile On Target LLC (Jurisdiction: North Carolina, United States; USPTO Customer No. 224891)
+**Licensor:** Agile On Target LLC (USPTO Customer No. 224891)
 
 ---
 
@@ -81,4 +81,4 @@ For Contributions submitted by any channel other than a GitHub pull request to t
 
 ---
 
-*Agile On Target LLC — North Carolina, United States — USPTO Customer No. 224891*
+*Agile On Target LLC — USPTO Customer No. 224891*
