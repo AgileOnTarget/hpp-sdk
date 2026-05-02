@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanpresenceprotocol.com/schemas/attest-request-v1.json",
+  "title": "HPP Attestation Request",
+  "description": "The canonical attestation payload submitted by the client to POST /v1/attest after successful WebAuthn biometric verification. Every field is required. The nonce binds this request to a specific single-use challenge.",
+  "version": "1.0",
+
+  "type": "object",
+  "required": [
+    "cert_id", "nonce", "rp_id", "server_timestamp", "client_timestamp",
+    "credential_id", "authenticator_data", "assertion_sig", "client_data_json"
+  ],
+
+  "properties": {
+    "cert_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID v4 generated client-side. Becomes the unique identifier for the resulting Presence Certificate. The client generates this before submission to enable inflight recovery if the service worker restarts.",
+      "example": "a3f8b2c1-4d7e-4f2a-8b1c-9e0d5f3a2b7c"
+    },
+
+    "nonce": {
+      "type": "string",
+      "format": "base64url",
+      "description": "The nonce from the challenge response. MUST match an issued, unconsumed challenge nonce. The server marks this nonce as consumed upon receipt — any second submission is rejected with 401 NONCE_ALREADY_USED.",
+      "example": "dGhpcyBpcyBhIHNhbXBsZSBub25jZSB2YWx1ZSBmb3IgZGVtbw"
+    },
+
+    "rp_id": {
+      "type": "string",
+      "description": "eTLD+1 (registrable domain) from the challenge. Must match the rp_id in the original challenge and the WebAuthn rp.id used during credential.get().",
+      "example": "humanpresenceprotocol.com"
+    },
+
+    "server_timestamp": {
+      "type": "integer",
+      "description": "Echoed from the challenge response. Allows the server to verify the challenge was recently issued without a separate lookup.",
+      "example": 1743100800000
+    },
+
+    "client_timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp in milliseconds from the client device clock at submission time. Used by the server for clock skew analysis and telemetry. NOT used for security decisions — server_timestamp is authoritative.",
+      "example": 1743100815000
+    },
+
+    "credential_id": {
+      "type": "string",
+      "format": "base64url",
+      "description": "The WebAuthn credential identifier (rawId) from the authenticator assertion response. Hardware-bound to the user's device (Secure Enclave / TPM).",
+      "example": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+    },
+
+    "authenticator_data": {
+      "type": "string",
+      "format": "base64url",
+      "description": "Raw WebAuthn authenticatorData bytes from the assertion response. Layout: rpIdHash(32) | flags(1) | signCount(4) | extensions. The client MUST verify bit 2 (UV) is set before submission. The server independently verifies UV=1.",
+      "example": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABg"
+    },
+
+    "assertion_sig": {
+      "type": "string",
+      "format": "base64url",
+      "description": "ECDSA P-256 signature over SHA-256(authenticatorData || SHA-256(clientDataJSON)), produced by the platform authenticator's hardware-bound private key inside the TEE. This key never leaves the device.",
+      "example": "MEYCIQDxk2nVzQpL8m9rBfKwT3hN4vYsX0cA7jR1uOp2dEfGhAIhALm3sQ9wKpV6xY7zN8bC2fT0rH4nM5oP1iUeWaJlDsKw"
+    },
+
+    "client_data_json": {
+      "type": "string",
+      "format": "base64url",
+      "description": "Base64url-encoded clientDataJSON from the WebAuthn assertion. Contains type, challenge (matching nonce), origin, and crossOrigin fields. The server uses this for independent WebAuthn verification.",
+      "example": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZEdo..."
+    }
+  },
+
+  "examples": [
+    {
+      "_comment": "Standard attestation submission",
+      "cert_id": "a3f8b2c1-4d7e-4f2a-8b1c-9e0d5f3a2b7c",
+      "nonce": "dGhpcyBpcyBhIHNhbXBsZSBub25jZSB2YWx1ZSBmb3IgZGVtbw",
+      "rp_id": "humanpresenceprotocol.com",
+      "server_timestamp": 1743100800000,
+      "client_timestamp": 1743100815000,
+      "credential_id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+      "authenticator_data": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABg",
+      "assertion_sig": "MEYCIQDxk2nVzQpL8m9rBfKwT3hN4vYsX0cA7jR1uOp2dEfGhAIhALm3sQ9wKpV6xY7zN8bC2fT0rH4nM5oP1iUeWaJlDsKw",
+      "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZEdo..."
+    }
+  ],
+
+  "server_processing": {
+    "description": "Steps the verifier server executes upon receiving this payload.",
+    "steps": [
+      {"step": 1, "action": "Verify nonce exists in the active challenge store and has not been consumed"},
+      {"step": 2, "action": "Mark nonce as consumed (single-use enforcement)"},
+      {"step": 3, "action": "Verify server_timestamp matches the original challenge"},
+      {"step": 4, "action": "Verify submission arrived within window_ms of server_timestamp"},
+      {"step": 5, "action": "Verify rp_id matches the challenge rp_id"},
+      {"step": 6, "action": "Decode authenticator_data and verify UV flag (bit 2) is set"},
+      {"step": 7, "action": "Look up the enrolled public key for credential_id + rp_id"},
+      {"step": 8, "action": "Verify assertion_sig using the enrolled public key over SHA-256(authenticator_data || SHA-256(client_data_json))"},
+      {"step": 9, "action": "Verify sign_count > stored sign_count (anti-replay)"},
+      {"step": 10, "action": "Construct and sign the Presence Certificate"}
+    ],
+    "error_responses": {
+      "401_NONCE_ALREADY_USED": "Nonce has been consumed by a previous attestation",
+      "401_CREDENTIAL_REVOKED": "The credential has been revoked",
+      "401_UV_FLAG_MISSING": "Authenticator data UV bit is not set",
+      "401_ASSERTION_INVALID": "Assertion signature verification failed",
+      "408_CHALLENGE_EXPIRED": "Submission arrived outside the window_ms enforcement period"
+    }
+  }
+}

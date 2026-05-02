@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanpresenceprotocol.com/schemas/error-codes-v1.json",
+  "title": "HPP Error Code Registry",
+  "description": "Canonical registry of all HPP error codes. Every implementation — browser extension, mobile SDK, native client — MUST use these exact codes. Display messages are localization-ready.",
+  "version": "1.0",
+
+  "error_codes": {
+    "client_errors": {
+      "HPP_EXTENSION_NOT_FOUND": {
+        "category": "client",
+        "severity": "fatal",
+        "http_status": null,
+        "display_message": "The HPP extension is not installed or not active on this page.",
+        "cause": "HPP.requestPresence() was called but no extension dispatched hpp-extension-ready.",
+        "resolution": "Install the HPP client (browser extension, mobile SDK, or native module)."
+      },
+      "HPP_TIMEOUT": {
+        "category": "client",
+        "severity": "retryable",
+        "http_status": null,
+        "display_message": "Presence verification timed out.",
+        "cause": "The user did not complete biometric verification within timeoutMs (default 60000ms).",
+        "resolution": "Retry. The user may need to be prompted again."
+      },
+      "HPP_WEBAUTHN_CANCELLED": {
+        "category": "client",
+        "severity": "retryable",
+        "http_status": null,
+        "display_message": "Biometric verification was cancelled.",
+        "cause": "The user dismissed the WebAuthn biometric prompt (NotAllowedError).",
+        "resolution": "Retry when the user is ready to verify."
+      },
+      "HPP_UV_FLAG_MISSING": {
+        "category": "client",
+        "severity": "fatal",
+        "http_status": null,
+        "display_message": "Biometric verification was not confirmed by the authenticator.",
+        "cause": "The platform authenticator produced an assertion without the UV (User Verified) flag set. This violates INV-1.",
+        "resolution": "Ensure the device has a working biometric sensor and that userVerification is not being downgraded by browser settings."
+      },
+      "HPP_ORIGIN_MISMATCH": {
+        "category": "client",
+        "severity": "fatal",
+        "http_status": null,
+        "display_message": "This site's origin does not match any enrolled HPP credential.",
+        "cause": "The computed rpId from the page origin does not match any enrolled site, or the rpId computed client-side differs from server-side.",
+        "resolution": "The user must enroll on this site first, or the site's domain has changed since enrollment."
+      }
+    },
+
+    "server_errors": {
+      "HPP_SERVER_UNAVAILABLE": {
+        "category": "server",
+        "severity": "retryable",
+        "http_status": null,
+        "display_message": "The HPP verification server is temporarily unavailable.",
+        "cause": "Network error, server timeout, or unexpected HTTP status from the verifier server.",
+        "resolution": "Retry after a brief delay. If persistent, check server status."
+      },
+      "HPP_CHALLENGE_SIG_INVALID": {
+        "category": "server",
+        "severity": "fatal",
+        "http_status": null,
+        "display_message": "The verification challenge could not be validated.",
+        "cause": "The server_sig on the challenge response failed ECDSA verification. Possible MITM or server key rotation.",
+        "resolution": "Do not proceed. The challenge may be tampered. Refresh and retry."
+      },
+      "HPP_CHALLENGE_EXPIRED": {
+        "category": "server",
+        "severity": "retryable",
+        "http_status": 408,
+        "display_message": "The verification window has expired. Please try again.",
+        "cause": "The attestation arrived outside the window_ms enforcement period.",
+        "resolution": "Fetch a new challenge and retry."
+      },
+      "HPP_CHALLENGE_STALE": {
+        "category": "server",
+        "severity": "retryable",
+        "http_status": null,
+        "display_message": "The verification challenge is stale.",
+        "cause": "The challenge server_timestamp is older than max_clock_skew_ms allows.",
+        "resolution": "Fetch a new challenge."
+      },
+      "HPP_CLOCK_SKEW": {
+        "category": "server",
+        "severity": "retryable",
+        "http_status": null,
+        "display_message": "Clock synchronization error detected.",
+        "cause": "The difference between client time and server_timestamp exceeds max_clock_skew_ms.",
+        "resolution": "Check device clock accuracy. Retry."
+      },
+      "HPP_UNKNOWN_EXTENSION_ID": {
+        "category": "server",
+        "severity": "fatal",
+        "http_status": 403,
+        "display_message": "This HPP client is not recognized by the verification server.",
+        "cause": "The X-HPP-Extension-ID header is not in the server's allowlist.",
+        "resolution": "Install an authorized HPP client."
+      }
+    },
+
+    "verification_errors": {
+      "CERT_SIG_INVALID": {
+        "category": "verification",
+        "severity": "fatal",
+        "http_status": 401,
+        "display_message": "Certificate signature verification failed.",
+        "cause": "hpp_server_sig does not match the canonical payload when verified against the HPP public key.",
+        "resolution": "Reject the certificate. Do not grant access."
+      },
+      "RP_MISMATCH": {
+        "category": "verification",
+        "severity": "fatal",
+        "http_status": 401,
+        "display_message": "Certificate domain mismatch.",
+        "cause": "The rp_id in the certificate does not match the relying party's expected domain.",
+        "resolution": "Reject the certificate."
+      },
+      "CERT_EXPIRED": {
+        "category": "verification",
+        "severity": "retryable",
+        "http_status": 401,
+        "display_message": "Presence certificate has expired.",
+        "cause": "expiry_ms < Date.now() at verification time.",
+        "resolution": "Request re-verification."
+      },
+      "ALREADY_USED": {
+        "category": "verification",
+        "severity": "fatal",
+        "http_status": 401,
+        "display_message": "This certificate has already been used.",
+        "cause": "cert_id exists in the replay prevention store.",
+        "resolution": "Reject. Possible replay attack."
+      },
+      "NONCE_ALREADY_USED": {
+        "category": "verification",
+        "severity": "fatal",
+        "http_status": 401,
+        "display_message": "Challenge nonce has already been consumed.",
+        "cause": "The nonce was used in a previous attestation.",
+        "resolution": "Reject. Fetch a new challenge."
+      },
+      "CREDENTIAL_REVOKED": {
+        "category": "verification",
+        "severity": "fatal",
+        "http_status": 401,
+        "display_message": "This device credential has been revoked.",
+        "cause": "The credential_id has been revoked via DELETE /v1/credential.",
+        "resolution": "The user must re-enroll."
+      },
+      "ACTION_SCOPE_MISMATCH": {
+        "category": "verification",
+        "severity": "fatal",
+        "http_status": 401,
+        "display_message": "Re-attestation action scope does not match.",
+        "cause": "The action_scope in the certificate does not match the expected value for the protected action.",
+        "resolution": "Reject. Request re-attestation with correct action scope."
+      }
+    }
+  }
+}

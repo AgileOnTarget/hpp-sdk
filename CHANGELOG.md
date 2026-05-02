@@ -4,6 +4,69 @@ All notable changes to this SDK are documented here. The format follows [Keep a 
 
 ---
 
+## [0.3.0] — 2026-05-02 — Protocol documentation corpus + reference implementations published
+
+This release pulls 20 internal documents and reference artifacts into the public SDK. The published surface now covers the canonical client SDK architecture, verifier reference architecture, Genesis Epoch bootstrap, continuity-score behavior, device recovery, integration patterns, and ready-to-use Node.js / Python verification libraries.
+
+### Added — Protocol documentation (`protocol/docs/`)
+- `client-sdk-architecture.md` — Recommended architecture for any HPP client SDK (key management, biometric gating, pulse construction, submission, ledger integration)
+- `keys-and-genesis.md` — Verifier signing keys, Genesis Epoch bootstrap, key rotation flow, root-of-trust establishment
+- `continuity-reference.md` — Practical Continuity Score reference: default parameters, decay behavior, recovery patterns, edge cases
+- `device-recovery.md` — Migration and recovery flows for device loss, replacement, cross-device handoff
+- `rp-use-case-map.md` — Seven concrete relying-party integration patterns (login, transaction signing, content gating, age verification, presence-bound credits, etc.) with worked examples
+- `ledger-architecture.md` — Local hash-chained ledger format for cached score and credits on device
+- `reference-verifier-architecture.md` — Reference architecture for an HPP Verifier Service: scaling, observability, key custody
+
+### Added — Schemas (`protocol/schemas/`)
+- `challenge-v1.json` — `/challenge` endpoint request/response JSON Schema
+- `attest-request-v1.json` — Attestation request payload schema
+- `presence-cert-v1.json` — Presence Certificate schema
+- `error-codes-v1.json` — Canonical error code registry for client and server implementations
+
+### Added — Reference implementations (`protocol/reference-implementations/`)
+- `verify-node.js` — Node.js verification library for relying parties
+- `verify-python.py` — Python verification library for relying parties
+- `verify-test-suite.js` — Cross-implementation test vectors
+- `example-rp-server.js` — Minimal working relying-party backend
+- `example-integration.html` — Minimal working relying-party front-end
+
+### Added — Tools (`protocol/tools/`)
+- `simulator.html` — Interactive protocol simulator (educational; runs entirely client-side)
+
+### Added — iOS docs
+- `ios/docs/implementation-notes.md` — Secure Enclave + Keychain access-control patterns for HPP iOS clients
+
+### Added — Project governance (root)
+- `GOVERNANCE.md` — How the protocol is governed: decision-making process, maintainer selection, protocol evolution
+- `MAINTAINERS.md` — Maintainer roles, responsibilities, expectations
+
+### Changed
+- Root `README.md` gained a new "Documentation" section that surfaces every doc in `protocol/docs/` plus the reference-implementation links and the simulator
+- Repository Layout block updated to reflect the new files
+- `protocol/docs/relying-party-guide.md` — removed pre-existing internal classification banner ("Confidential — M&A Diligence" header and footer) that was inadvertently published in v0.1.x. Document content unchanged.
+
+### Source-file headers
+All new code files (5 JS, 1 PY, 2 HTML) carry the standard SDK SPDX header (Apache-2.0 + USPTO Customer No. 224891 trademarks-reserved restatement) matching the chrome-extension convention. Markdown and JSON-schema files do not carry SPDX headers, matching the convention established in v0.1.x.
+
+### Cross-reference normalization
+Two pulled docs originally referenced sibling docs by their internal aspirational names (`SPEC.md`, `VERIFIER_API_SPEC.md`); these references have been rewritten to point at the public-repo names (`core-spec.md`, `verifier-api.md`).
+
+### Excluded from this pull (with reasons)
+- Doc Dependency Map — internal "Confidential — M&A / Engineering Diligence" classification; reserved for internal use.
+- Attestation OpenAPI YAML — license clause conflicts with the repo's Apache 2.0 grant ("Proprietary — Patent Pending"), and would worsen the documented `protocol/openapi.yaml` API drift versus the shipping verifier; deferred until the OpenAPI reconciliation task lands.
+- iOS Xcode Skeleton — carries an internal "Confidential" banner pending editorial cleanup.
+
+### Known issue (tagged for follow-up)
+- `protocol/docs/relying-party-guide.md` retains several cross-references to internal document IDs (`OSI8_03A_*`, `OSI8_05A_*`) that do not exist in the public repo. These are dead links, not PII or classification leaks. A separate cleanup pass will convert or remove them.
+
+### Authorization trail
+- Tom directive (2026-05-02): "Yes, this needs to be done. Scrub the SDK. Do the work." → covered the PII history rewrite (v0.2.0 retro) and authorized continuing the original asks.
+- Tom directive (2026-05-02): "Please also look in the AOT VDR and see if there is anything ... that should be included in the GitHub public sdk. Then update the AOT VDR with the hpp-sdk information we just built and reviewed." → authorizes this 0.3.0 doc-pull release.
+
+No rights added or removed vs. v0.2.0. Apache 2.0 grant, CLA terms, and patent scope unchanged.
+
+---
+
 ## [0.2.0] — 2026-05-02 — iOS Swift Package + Website JS drop-in shipped
 
 The two surfaces previously labeled "Phase 2 — planned" are now working source.

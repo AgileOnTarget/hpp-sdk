@@ -1,0 +1,916 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+Copyright 2026 Agile On Target LLC
+
+This file is part of the Human Presence Protocol SDK
+(https://github.com/AgileOnTarget/hpp-sdk). Licensed under the Apache
+License, Version 2.0; see LICENSE, NOTICE, PATENT-NOTICE.md, and
+PATENT-POLICY.md for the scope of the patent grant. All trademarks
+and patent rights reserved by Agile On Target LLC
+(USPTO Customer No. 224891).
+-->
+<!DOCTYPE html>
+<!--
+  HPP Protocol Simulator — Interactive 6-Phase Flow Visualization
+
+  Self-contained HTML/JS simulator that walks through the complete
+  Human Presence Protocol verification flow. Generates synthetic
+  certificates with real cryptographic operations (Web Crypto API).
+
+  Phases:
+    1. Discovery — Meta tag detection + HPP.requestPresence()
+    2. Challenge — Server issues signed nonce with H-Constant window
+    3. Biometric — WebAuthn assertion with UV enforcement
+    4. Attestation — Server verifies assertion + issues certificate
+    5. Delivery — Certificate delivered to RP callback (not page JS)
+    6. Verification — RP verifies certificate (7-step checklist)
+
+  No external dependencies. Uses Web Crypto API for real ECDSA P-256.
+
+  Version: 1.0.0
+  License: Proprietary — Patent Pending
+  Author: Agile On Target LLC
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HPP Protocol Simulator</title>
+<style>
+:root {
+  --navy: #1F3864;
+  --navy-light: #2a4a7f;
+  --gold: #C9A84C;
+  --gold-dim: rgba(201,168,76,0.2);
+  --success: #27ae60;
+  --error: #e74c3c;
+  --warn: #f39c12;
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #1c2333;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-dim: #8b949e;
+  --mono: 'SF Mono', Monaco, 'Cascadia Code', 'Fira Code', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+  padding: 1.5rem 2rem;
+  border-bottom: 3px solid var(--gold);
+}
+header h1 { font-size: 1.3rem; color: white; }
+header p { color: var(--gold); font-size: 0.85rem; margin-top: 0.25rem; }
+.container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+.controls {
+  display: flex; gap: 0.75rem; align-items: center;
+  margin-bottom: 1.5rem; flex-wrap: wrap;
+}
+button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+button:hover { opacity: 0.9; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-run { background: var(--gold); color: var(--navy); border-color: var(--gold); font-weight: 600; }
+.btn-step { background: var(--navy); color: white; border-color: var(--navy-light); }
+.btn-reset { background: transparent; color: var(--text-dim); }
+.btn-inject { background: var(--error); color: white; border-color: var(--error); font-size: 0.8rem; }
+.speed-control { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+.speed-control label { font-size: 0.8rem; color: var(--text-dim); }
+.speed-control select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Phase timeline */
+.timeline {
+  display: flex; gap: 0; margin-bottom: 1.5rem;
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.phase-tab {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  border-right: 1px solid var(--border);
+  position: relative;
+  transition: all 0.3s;
+}
+.phase-tab:last-child { border-right: none; }
+.phase-tab .phase-num {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.15rem;
+}
+.phase-tab.active { background: var(--navy); color: white; }
+.phase-tab.complete { background: var(--success); color: white; }
+.phase-tab.failed { background: var(--error); color: white; }
+
+/* Main panels */
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 768px) { .panels { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.panel-header {
+  padding: 0.6rem 1rem;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.panel-body {
+  padding: 1rem;
+  max-height: 500px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+/* Sequence diagram */
+.seq-msg {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.6rem;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.3s;
+}
+.seq-msg.visible { opacity: 1; transform: translateY(0); }
+.seq-arrow {
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+.seq-arrow.reverse { flex-direction: row-reverse; color: var(--success); }
+.seq-arrow.fail { color: var(--error); }
+.seq-body {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+/* Data inspector */
+.field { margin-bottom: 0.4rem; }
+.field-key { color: var(--gold); }
+.field-val { color: var(--text); word-break: break-all; }
+.field-val.truncated { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
+.field-comment { color: var(--text-dim); font-size: 0.7rem; }
+
+/* Verification checklist */
+.check-item {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  background: var(--bg);
+  font-size: 0.8rem;
+  opacity: 0.4;
+  transition: all 0.3s;
+}
+.check-item.active { opacity: 1; border-left: 3px solid var(--gold); }
+.check-item.pass { opacity: 1; border-left: 3px solid var(--success); }
+.check-item.fail { opacity: 1; border-left: 3px solid var(--error); }
+.check-icon { font-size: 1rem; min-width: 1.2rem; text-align: center; }
+.check-detail { flex: 1; }
+.check-name { font-weight: 600; }
+.check-status { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.15rem; }
+
+/* JSON display */
+.json-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  white-space: pre;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+.json-key { color: var(--gold); }
+.json-str { color: #a5d6ff; }
+.json-num { color: #79c0ff; }
+.json-bool { color: #ff7b72; }
+
+/* Status bar */
+.status-bar {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.status-bar.idle { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
+.status-bar.running { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid var(--gold); }
+.status-bar.success { background: rgba(39,174,96,0.15); color: var(--success); border: 1px solid var(--success); }
+.status-bar.failure { background: rgba(231,76,60,0.15); color: var(--error); border: 1px solid var(--error); }
+
+.tag { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px; font-size: 0.7rem; font-weight: 600; }
+.tag-inv { background: rgba(231,76,60,0.2); color: var(--error); }
+.tag-h { background: rgba(201,168,76,0.2); color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>HPP Protocol Simulator</h1>
+  <p>Interactive 6-Phase Verification Flow &mdash; Real ECDSA P-256 Cryptography</p>
+</header>
+
+<div class="container">
+  <div class="controls">
+    <button class="btn-run" id="btnRun" onclick="runFull()">Run Full Flow</button>
+    <button class="btn-step" id="btnStep" onclick="stepNext()">Step</button>
+    <button class="btn-reset" onclick="resetSim()">Reset</button>
+    <button class="btn-inject" onclick="injectTamper()">Inject Tampering</button>
+    <button class="btn-inject" onclick="injectExpired()">Inject Expired</button>
+    <button class="btn-inject" onclick="injectNoUV()">Inject No UV</button>
+    <div class="speed-control">
+      <label>Speed:</label>
+      <select id="speed">
+        <option value="1500">Slow</option>
+        <option value="800" selected>Normal</option>
+        <option value="300">Fast</option>
+        <option value="50">Instant</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="timeline" id="timeline">
+    <div class="phase-tab" data-phase="0"><span class="phase-num">Phase 1</span>Discovery</div>
+    <div class="phase-tab" data-phase="1"><span class="phase-num">Phase 2</span>Challenge</div>
+    <div class="phase-tab" data-phase="2"><span class="phase-num">Phase 3</span>Biometric</div>
+    <div class="phase-tab" data-phase="3"><span class="phase-num">Phase 4</span>Attestation</div>
+    <div class="phase-tab" data-phase="4"><span class="phase-num">Phase 5</span>Delivery</div>
+    <div class="phase-tab" data-phase="5"><span class="phase-num">Phase 6</span>Verification</div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-header">
+        <span>Sequence Diagram</span>
+        <span id="seqPhaseLabel" style="color:var(--gold);font-size:0.75rem;"></span>
+      </div>
+      <div class="panel-body" id="seqPanel"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span>Data Inspector</span>
+        <span id="dataPhaseLabel" style="color:var(--gold);font-size:0.75rem;"></span>
+      </div>
+      <div class="panel-body" id="dataPanel"></div>
+    </div>
+  </div>
+
+  <div class="status-bar idle" id="statusBar">
+    Ready. Click "Run Full Flow" or "Step" to begin the HPP verification sequence.
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// Crypto Utilities (Web Crypto API — real ECDSA P-256)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let serverKeyPair = null;
+
+async function initCrypto() {
+  serverKeyPair = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    true,
+    ['sign', 'verify']
+  );
+}
+
+function b64url(buf) {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function uuid() {
+  return crypto.randomUUID ? crypto.randomUUID() :
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+}
+
+function randomB64(n) {
+  const buf = new Uint8Array(n);
+  crypto.getRandomValues(buf);
+  return b64url(buf);
+}
+
+async function signPayload(payload) {
+  const enc = new TextEncoder().encode(payload);
+  const sig = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    serverKeyPair.privateKey,
+    enc
+  );
+  return b64url(sig);
+}
+
+async function verifySignature(payload, sigB64) {
+  const enc = new TextEncoder().encode(payload);
+  // Decode base64url
+  let b64 = sigB64.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const binary = atob(b64);
+  const sigBuf = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) sigBuf[i] = binary.charCodeAt(i);
+  return crypto.subtle.verify(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    serverKeyPair.publicKey,
+    sigBuf,
+    enc
+  );
+}
+
+function buildCanonicalPayload(cert) {
+  const fields = [
+    'assertion_sig', 'authenticator_data', 'cert_id', 'client_data_json',
+    'client_timestamp', 'credential_id', 'expiry_ms', 'nonce',
+    'rp_id', 'server_timestamp'
+  ];
+  const obj = {};
+  for (const k of fields) {
+    if (cert[k] !== undefined) obj[k] = cert[k];
+  }
+  return JSON.stringify(obj);
+}
+
+function buildAuthData(uvSet, signCount) {
+  // rpIdHash(32) | flags(1) | signCount(4)
+  const buf = new Uint8Array(37);
+  // Fill rpIdHash with deterministic bytes
+  const hash = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) hash[i] = (i * 7 + 0x49) & 0xFF;
+  buf.set(hash, 0);
+  buf[32] = uvSet ? 0x05 : 0x01; // UP + UV or UP only
+  const view = new DataView(buf.buffer);
+  view.setUint32(33, signCount || 42, false);
+  return b64url(buf);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Simulator State
+// ═══════════════════════════════════════════════════════════════════════════
+
+let currentPhase = -1;
+let running = false;
+let stepResolve = null;
+let simData = {};
+let injections = { tamper: false, expired: false, noUV: false };
+
+function getDelay() { return parseInt(document.getElementById('speed').value); }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function waitForStep() {
+  return new Promise(r => { stepResolve = r; });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UI Rendering
+// ═══════════════════════════════════════════════════════════════════════════
+
+function setPhase(idx, status) {
+  const tabs = document.querySelectorAll('.phase-tab');
+  tabs.forEach((t, i) => {
+    t.className = 'phase-tab';
+    if (i < idx) t.classList.add('complete');
+    if (i === idx) t.classList.add(status || 'active');
+  });
+  currentPhase = idx;
+}
+
+function setStatus(msg, type) {
+  const bar = document.getElementById('statusBar');
+  bar.className = `status-bar ${type}`;
+  bar.textContent = msg;
+}
+
+function addSeqMsg(from, to, label, data, isReverse, isFail) {
+  const panel = document.getElementById('seqPanel');
+  const msg = document.createElement('div');
+  msg.className = 'seq-msg';
+  const arrowCls = isFail ? 'seq-arrow fail' : (isReverse ? 'seq-arrow reverse' : 'seq-arrow');
+  const arrow = isFail ? '✗' : (isReverse ? '←' : '→');
+  msg.innerHTML = `
+    <div class="${arrowCls}">
+      <span style="font-size:0.65rem;">${from}</span>
+      <span>${arrow}</span>
+      <span style="font-size:0.65rem;">${to}</span>
+    </div>
+    <div class="seq-body">
+      <div style="color:var(--text);font-weight:600;margin-bottom:0.25rem;">${label}</div>
+      ${data ? `<div style="color:var(--text-dim);font-size:0.7rem;">${data}</div>` : ''}
+    </div>
+  `;
+  panel.appendChild(msg);
+  requestAnimationFrame(() => msg.classList.add('visible'));
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function setDataPanel(html) {
+  document.getElementById('dataPanel').innerHTML = html;
+}
+
+function setSeqLabel(text) {
+  document.getElementById('seqPhaseLabel').textContent = text;
+}
+function setDataLabel(text) {
+  document.getElementById('dataPhaseLabel').textContent = text;
+}
+
+function jsonHighlight(obj, indent) {
+  const str = JSON.stringify(obj, null, indent || 2);
+  return str
+    .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="json-str">"$1"</span>')
+    .replace(/: (\d+)/g, ': <span class="json-num">$1</span>')
+    .replace(/: (true|false)/g, ': <span class="json-bool">$1</span>');
+}
+
+function truncate(s, n) {
+  return s.length > n ? s.slice(0, n) + '...' : s;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Simulation Phases
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function phase0_Discovery() {
+  setPhase(0);
+  setStatus('Phase 1: Site Discovery — HPP client detects meta tag', 'running');
+  setSeqLabel('Phase 1: Discovery');
+  setDataLabel('Meta Tag & API');
+
+  await sleep(getDelay());
+  addSeqMsg('Page', 'HPP', 'Meta tag detected', `&lt;meta name="hpp-enrollment" data-hpp-callback="/api/hpp" data-hpp-site-name="Acme Corp"&gt;`);
+
+  setDataPanel(`
+    <div style="margin-bottom:1rem;">
+      <div style="color:var(--gold);font-weight:600;margin-bottom:0.5rem;">Detected Integration</div>
+      <div class="field"><span class="field-key">meta name</span> = <span class="field-val">hpp-enrollment</span></div>
+      <div class="field"><span class="field-key">callback</span> = <span class="field-val">/api/hpp</span></div>
+      <div class="field"><span class="field-key">site_name</span> = <span class="field-val">Acme Corp</span></div>
+    </div>
+    <div style="color:var(--gold);font-weight:600;margin-bottom:0.5rem;">API Call</div>
+    <div class="json-block">HPP.requestPresence({
+  timeoutMs: 60000
+})</div>
+  `);
+
+  await sleep(getDelay());
+  addSeqMsg('Site JS', 'HPP', 'HPP.requestPresence()', 'timeoutMs: 60000');
+
+  await sleep(getDelay());
+  setPhase(0, 'complete');
+}
+
+async function phase1_Challenge() {
+  setPhase(1);
+  setStatus('Phase 2: Challenge — Server issues signed nonce with H-Constant window', 'running');
+  setSeqLabel('Phase 2: Challenge');
+  setDataLabel('Challenge Response');
+
+  const now = Date.now();
+  simData.challenge = {
+    nonce: randomB64(32),
+    rp_id: 'acme.com',
+    server_timestamp: now,
+    window_ms: 30000,
+    purpose: 'attest',
+  };
+
+  // Sign the challenge
+  const challengePayload = JSON.stringify(simData.challenge);
+  simData.challenge.server_sig = await signPayload(challengePayload);
+
+  await sleep(getDelay());
+  addSeqMsg('HPP', 'Server', 'GET /v1/challenge', `rp_id=acme.com&purpose=attest`);
+
+  await sleep(getDelay());
+  addSeqMsg('Server', 'HPP', 'Challenge issued', `nonce: ${truncate(simData.challenge.nonce, 20)}`, true);
+
+  setDataPanel(`
+    <div style="color:var(--gold);font-weight:600;margin-bottom:0.5rem;">Challenge Response</div>
+    <div class="json-block">${jsonHighlight(simData.challenge)}</div>
+    <div style="margin-top:0.75rem;">
+      <span class="tag tag-h">H-Constant</span>
+      <span style="font-size:0.8rem;color:var(--text-dim);margin-left:0.5rem;">
+        window_ms = 30000ms — biological cost floor enforced
+      </span>
+    </div>
+    <div style="margin-top:0.5rem;">
+      <span class="tag tag-inv">INV-7</span>
+      <span style="font-size:0.8rem;color:var(--text-dim);margin-left:0.5rem;">
+        Nonce is single-use — consumed on first attestation
+      </span>
+    </div>
+  `);
+
+  await sleep(getDelay());
+  setPhase(1, 'complete');
+}
+
+async function phase2_Biometric() {
+  setPhase(2);
+  setStatus('Phase 3: Biometric — User completes WebAuthn assertion (UV required)', 'running');
+  setSeqLabel('Phase 3: Biometric');
+  setDataLabel('WebAuthn Assertion');
+
+  const useUV = !injections.noUV;
+  simData.authData = buildAuthData(useUV, 42);
+  simData.assertionSig = randomB64(64);
+  simData.credentialId = randomB64(32);
+  simData.clientDataJson = b64url(new TextEncoder().encode(JSON.stringify({
+    type: 'webauthn.get',
+    challenge: simData.challenge.nonce,
+    origin: 'https://acme.com',
+    crossOrigin: false,
+  })));
+
+  await sleep(getDelay());
+  addSeqMsg('HPP', 'WebAuthn', 'navigator.credentials.get()', `userVerification: "required"`);
+
+  await sleep(getDelay() * 1.5);
+  addSeqMsg('User', 'Device', 'Biometric scan', useUV ? 'Touch ID / Face ID / Fingerprint' : 'UV NOT CONFIRMED (injected fault)');
+
+  await sleep(getDelay());
+  addSeqMsg('WebAuthn', 'HPP', 'Assertion response', `UV=${useUV ? '1' : '0'}, signCount=42`, true);
+
+  const uvColor = useUV ? 'var(--success)' : 'var(--error)';
+  const uvIcon = useUV ? '&#10003;' : '&#10007;';
+
+  setDataPanel(`
+    <div style="color:var(--gold);font-weight:600;margin-bottom:0.5rem;">WebAuthn Assertion</div>
+    <div class="field"><span class="field-key">credential_id</span> = <span class="field-val truncated">${simData.credentialId}</span></div>
+    <div class="field"><span class="field-key">authenticator_data</span> = <span class="field-val truncated">${simData.authData}</span></div>
+    <div class="field"><span class="field-key">assertion_sig</span> = <span class="field-val truncated">${simData.assertionSig}</span></div>
+    <div class="field"><span class="field-key">client_data_json</span> = <span class="field-val truncated">${simData.clientDataJson}</span></div>
+    <div style="margin-top:1rem;padding:0.5rem;background:var(--bg);border-radius:4px;border-left:3px solid ${uvColor};">
+      <span style="color:${uvColor};font-weight:600;font-size:1.1rem;">${uvIcon}</span>
+      <span style="margin-left:0.5rem;font-weight:600;">UV Flag: ${useUV ? 'SET' : 'NOT SET'}</span>
+      <div style="font-size:0.75rem;color:var(--text-dim);margin-top:0.25rem;">
+        <span class="tag tag-inv">INV-1</span> UV (User Verified) bit at authenticator_data[32] & 0x04
+      </div>
+    </div>
+  `);
+
+  await sleep(getDelay());
+  setPhase(2, 'complete');
+}
+
+async function phase3_Attestation() {
+  setPhase(3);
+  setStatus('Phase 4: Attestation — Server verifies assertion and issues certificate', 'running');
+  setSeqLabel('Phase 4: Attestation');
+  setDataLabel('Attest Request & Response');
+
+  const now = Date.now();
+  simData.certId = uuid();
+  simData.serverTimestamp = simData.challenge.server_timestamp;
+  simData.clientTimestamp = now;
+  simData.expiryMs = injections.expired ? (now - 60000) : (now + 3600000);
+
+  // Build the certificate
+  simData.certificate = {
+    cert_id: simData.certId,
+    nonce: simData.challenge.nonce,
+    rp_id: simData.challenge.rp_id,
+    server_timestamp: simData.serverTimestamp,
+    client_timestamp: simData.clientTimestamp,
+    credential_id: simData.credentialId,
+    authenticator_data: simData.authData,
+    assertion_sig: simData.assertionSig,
+    client_data_json: simData.clientDataJson,
+    expiry_ms: simData.expiryMs,
+    status: 'issued',
+  };
+
+  // Sign the certificate
+  const payload = buildCanonicalPayload(simData.certificate);
+  simData.certificate.hpp_server_sig = await signPayload(payload);
+
+  // Inject tampering after signing
+  if (injections.tamper) {
+    simData.certificate.rp_id = 'evil.com';
+  }
+
+  const attestReq = {
+    cert_id: simData.certId,
+    nonce: truncate(simData.challenge.nonce, 16),
+    rp_id: simData.challenge.rp_id,
+    credential_id: truncate(simData.credentialId, 16),
+    authenticator_data: '...',
+    assertion_sig: '...',
+    client_data_json: '...',
+  };
+
+  await sleep(getDelay());
+  addSeqMsg('HPP', 'Server', 'POST /v1/attest', `cert_id: ${truncate(simData.certId, 12)}`);
+
+  await sleep(getDelay());
+  addSeqMsg('Server', 'HPP', 'Certificate issued', `hpp_server_sig: ${truncate(simData.certificate.hpp_server_sig, 16)}`, true);
+
+  setDataPanel(`
+    <div style="color:var(--gold);font-weight:600;margin-bottom:0.5rem;">Attest Request (to server)</div>
+    <div class="json-block" style="max-height:120px;overflow-y:auto;">${jsonHighlight(attestReq)}</div>
+    <div style="color:var(--gold);font-weight:600;margin:0.75rem 0 0.5rem;">Presence Certificate (issued)</div>
+    <div class="json-block" style="max-height:180px;overflow-y:auto;">${jsonHighlight({
+      cert_id: simData.certificate.cert_id,
+      rp_id: simData.certificate.rp_id,
+      expiry_ms: simData.certificate.expiry_ms,
+      status: simData.certificate.status,
+      hpp_server_sig: truncate(simData.certificate.hpp_server_sig, 32),
+    })}</div>
+    ${injections.tamper ? '<div style="margin-top:0.5rem;color:var(--error);font-weight:600;">⚠ TAMPERING INJECTED: rp_id changed from "acme.com" to "evil.com" after signing</div>' : ''}
+    ${injections.expired ? '<div style="margin-top:0.5rem;color:var(--error);font-weight:600;">⚠ EXPIRED INJECTED: expiry_ms set to 1 minute in the past</div>' : ''}
+  `);
+
+  await sleep(getDelay());
+  setPhase(3, 'complete');
+}
+
+async function phase4_Delivery() {
+  setPhase(4);
+  setStatus('Phase 5: Delivery — Certificate sent to RP callback (NOT page JS)', 'running');
+  setSeqLabel('Phase 5: Delivery');
+  setDataLabel('Security Model');
+
+  await sleep(getDelay());
+  addSeqMsg('HPP', 'RP Server', 'POST /api/hpp', `Full certificate delivered via extension → callback`);
+
+  await sleep(getDelay());
+  addSeqMsg('HPP', 'Page JS', 'Event: hpp:presence-granted', `cert_id only — NO certificate data`, true);
+
+  setDataPanel(`
+    <div style="color:var(--gold);font-weight:600;margin-bottom:0.75rem;">Delivery Security Model</div>
+    <div style="padding:0.75rem;background:var(--bg);border-radius:4px;margin-bottom:0.75rem;border-left:3px solid var(--success);">
+      <div style="font-weight:600;color:var(--success);">RP Server receives:</div>
+      <div style="font-size:0.8rem;margin-top:0.25rem;">Full Presence Certificate with all fields + hpp_server_sig</div>
+      <div style="font-size:0.75rem;color:var(--text-dim);margin-top:0.25rem;">
+        Delivered via: Extension content script → fetch() to callback URL
+      </div>
+    </div>
+    <div style="padding:0.75rem;background:var(--bg);border-radius:4px;margin-bottom:0.75rem;border-left:3px solid var(--error);">
+      <div style="font-weight:600;color:var(--error);">Page JavaScript receives:</div>
+      <div style="font-size:0.8rem;margin-top:0.25rem;">cert_id ONLY via CustomEvent</div>
+      <div style="font-size:0.75rem;color:var(--text-dim);margin-top:0.25rem;">
+        <span class="tag tag-inv">INV-5</span> Certificate NEVER exposed to page JS
+      </div>
+    </div>
+    <div style="padding:0.75rem;background:var(--bg);border-radius:4px;border-left:3px solid var(--gold);">
+      <div style="font-weight:600;color:var(--gold);">Why this matters:</div>
+      <div style="font-size:0.8rem;margin-top:0.25rem;">
+        Malicious page scripts cannot intercept, replay, or exfiltrate certificates.
+        The extension acts as a trusted intermediary between the attestation server
+        and the relying party.
+      </div>
+    </div>
+  `);
+
+  await sleep(getDelay());
+  setPhase(4, 'complete');
+}
+
+async function phase5_Verification() {
+  setPhase(5);
+  setStatus('Phase 6: RP Verification — 7-step certificate validation', 'running');
+  setSeqLabel('Phase 6: Verification');
+  setDataLabel('Verification Checklist');
+
+  const checks = [
+    { name: 'hpp_server_sig', desc: 'ECDSA P-256 signature over canonical payload', inv: 'INV-3' },
+    { name: 'rp_id', desc: 'Must match expected domain (acme.com)', inv: '' },
+    { name: 'expiry_ms', desc: 'Must be in the future', inv: '' },
+    { name: 'status', desc: 'Must be "issued"', inv: '' },
+    { name: 'UV flag', desc: 'Bit 2 of authenticator_data flags byte', inv: 'INV-1' },
+    { name: 'Replay (cert_id)', desc: 'Must not exist in replay store', inv: '' },
+    { name: 'action_scope', desc: 'Re-attestation only — scope must match', inv: '' },
+  ];
+
+  let html = '<div style="color:var(--gold);font-weight:600;margin-bottom:0.75rem;">RP Verification Checklist</div>';
+  checks.forEach((c, i) => {
+    html += `<div class="check-item" id="check-${i}">
+      <div class="check-icon" id="check-icon-${i}">○</div>
+      <div class="check-detail">
+        <div class="check-name">Step ${i+1}: ${c.name} ${c.inv ? `<span class="tag tag-inv">${c.inv}</span>` : ''}</div>
+        <div class="check-status" id="check-status-${i}">${c.desc}</div>
+      </div>
+    </div>`;
+  });
+  setDataPanel(html);
+
+  // Run each check with animation
+  const cert = simData.certificate;
+
+  // Check 1: Signature
+  await sleep(getDelay());
+  const origRpId = injections.tamper ? 'acme.com' : cert.rp_id;
+  const payloadForVerify = buildCanonicalPayload(
+    injections.tamper ? { ...cert, rp_id: 'acme.com' } : cert
+  );
+  // If tampered, the signature was over the original payload, but cert.rp_id is now evil.com
+  let sigValid;
+  if (injections.tamper) {
+    // The canonical payload uses the tampered rp_id, so sig won't match
+    const tamperedPayload = buildCanonicalPayload(cert);
+    sigValid = await verifySignature(tamperedPayload, cert.hpp_server_sig);
+  } else {
+    const p = buildCanonicalPayload(cert);
+    sigValid = await verifySignature(p, cert.hpp_server_sig);
+  }
+  updateCheck(0, sigValid, sigValid ? 'Signature valid' : 'SIGNATURE MISMATCH — payload tampered');
+  if (!sigValid) { await finishVerification(false, 'CERT_SIG_INVALID'); return; }
+
+  // Check 2: rp_id
+  await sleep(getDelay());
+  const rpMatch = cert.rp_id === 'acme.com';
+  updateCheck(1, rpMatch, rpMatch ? `rp_id = "${cert.rp_id}" matches expected` : `rp_id "${cert.rp_id}" ≠ expected "acme.com"`);
+  if (!rpMatch) { await finishVerification(false, 'RP_MISMATCH'); return; }
+
+  // Check 3: Expiry
+  await sleep(getDelay());
+  const now = Date.now();
+  const notExpired = cert.expiry_ms > now - 5000;
+  const expiresIn = Math.round((cert.expiry_ms - now) / 1000);
+  updateCheck(2, notExpired, notExpired ? `Expires in ${expiresIn}s` : `Expired ${-expiresIn}s ago`);
+  if (!notExpired) { await finishVerification(false, 'CERT_EXPIRED'); return; }
+
+  // Check 4: Status
+  await sleep(getDelay());
+  const statusOk = cert.status === 'issued';
+  updateCheck(3, statusOk, statusOk ? 'status = "issued"' : `status = "${cert.status}"`);
+  if (!statusOk) { await finishVerification(false, 'INVALID_STATUS'); return; }
+
+  // Check 5: UV flag
+  await sleep(getDelay());
+  // Decode auth data and check UV bit
+  let uvSet = false;
+  try {
+    let b64 = cert.authenticator_data.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const binary = atob(b64);
+    const flags = binary.charCodeAt(32);
+    uvSet = (flags & 0x04) !== 0;
+  } catch (e) { uvSet = false; }
+  updateCheck(4, uvSet, uvSet ? 'UV bit set (flags & 0x04 = 1)' : 'UV bit NOT SET — biometric not confirmed');
+  if (!uvSet) { await finishVerification(false, 'UV_FLAG_MISSING'); return; }
+
+  // Check 6: Replay
+  await sleep(getDelay());
+  updateCheck(5, true, `cert_id ${truncate(cert.cert_id, 12)} not in store — first use`);
+
+  // Check 7: action_scope (skip for standard attestation)
+  await sleep(getDelay());
+  updateCheck(6, true, 'Standard attestation — action_scope check skipped');
+
+  await finishVerification(true, null);
+}
+
+function updateCheck(idx, pass, detail) {
+  const item = document.getElementById(`check-${idx}`);
+  const icon = document.getElementById(`check-icon-${idx}`);
+  const status = document.getElementById(`check-status-${idx}`);
+  item.className = `check-item ${pass ? 'pass' : 'fail'}`;
+  icon.textContent = pass ? '✓' : '✗';
+  status.textContent = detail;
+}
+
+async function finishVerification(success, errorCode) {
+  await sleep(getDelay());
+  if (success) {
+    setPhase(5, 'complete');
+    setStatus('VERIFICATION COMPLETE — All 7 checks passed. Presence certificate accepted.', 'success');
+    addSeqMsg('RP Server', 'Session', 'Session created', `cert_id: ${truncate(simData.certId, 12)} — user verified as human`, true);
+  } else {
+    setPhase(5, 'failed');
+    setStatus(`VERIFICATION FAILED — ${errorCode}. Certificate rejected.`, 'failure');
+    addSeqMsg('RP Server', 'Client', `401 ${errorCode}`, 'Certificate rejected — access denied', false, true);
+  }
+  running = false;
+  document.getElementById('btnRun').disabled = false;
+  document.getElementById('btnStep').disabled = true;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Flow Control
+// ═══════════════════════════════════════════════════════════════════════════
+
+const phases = [phase0_Discovery, phase1_Challenge, phase2_Biometric, phase3_Attestation, phase4_Delivery, phase5_Verification];
+
+async function runFull() {
+  if (running) return;
+  running = true;
+  document.getElementById('btnRun').disabled = true;
+  resetUI();
+
+  await initCrypto();
+  for (const phase of phases) {
+    if (!running) break;
+    await phase();
+  }
+}
+
+async function stepNext() {
+  if (!running) {
+    running = true;
+    document.getElementById('btnRun').disabled = true;
+    resetUI();
+    await initCrypto();
+  }
+  const nextPhase = currentPhase + 1;
+  if (nextPhase < phases.length) {
+    await phases[nextPhase]();
+  }
+  if (currentPhase >= phases.length - 1) {
+    document.getElementById('btnStep').disabled = true;
+  }
+}
+
+function resetSim() {
+  running = false;
+  currentPhase = -1;
+  simData = {};
+  injections = { tamper: false, expired: false, noUV: false };
+  resetUI();
+  document.getElementById('btnRun').disabled = false;
+  document.getElementById('btnStep').disabled = false;
+}
+
+function resetUI() {
+  document.querySelectorAll('.phase-tab').forEach(t => t.className = 'phase-tab');
+  document.getElementById('seqPanel').innerHTML = '';
+  document.getElementById('dataPanel').innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:2rem;">Click Run or Step to begin</div>';
+  setStatus('Ready. Click "Run Full Flow" or "Step" to begin the HPP verification sequence.', 'idle');
+  setSeqLabel('');
+  setDataLabel('');
+}
+
+function injectTamper() {
+  injections.tamper = true;
+  setStatus('INJECTION: rp_id tampering enabled — will modify rp_id after signing', 'failure');
+}
+function injectExpired() {
+  injections.expired = true;
+  setStatus('INJECTION: Expired certificate enabled — expiry_ms set to past', 'failure');
+}
+function injectNoUV() {
+  injections.noUV = true;
+  setStatus('INJECTION: No UV flag — authenticator will not confirm biometric', 'failure');
+}
+
+// Initialize
+resetUI();
+</script>
+</body>
+</html>

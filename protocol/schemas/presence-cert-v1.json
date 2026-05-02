@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanpresenceprotocol.com/schemas/presence-certificate-v1.json",
+  "title": "HPP Presence Certificate",
+  "description": "A signed Presence Certificate issued by the HPP Attestation Server upon successful biometric verification. Delivered by the client directly to the relying party callback endpoint. Page JavaScript receives only cert_id — never the full certificate.",
+  "version": "1.0",
+
+  "type": "object",
+  "required": [
+    "cert_id", "nonce", "rp_id", "server_timestamp", "client_timestamp",
+    "credential_id", "authenticator_data", "assertion_sig", "client_data_json",
+    "expiry_ms", "status", "hpp_server_sig"
+  ],
+
+  "properties": {
+    "cert_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID v4. Unique identifier for this certificate. Relying parties MUST check this against a replay prevention store and reject any second submission within the expiry window.",
+      "example": "a3f8b2c1-4d7e-4f2a-8b1c-9e0d5f3a2b7c"
+    },
+
+    "nonce": {
+      "type": "string",
+      "format": "base64url",
+      "description": "The single-use challenge nonce that initiated this verification. Binds this certificate to a specific challenge. Relying parties may log this for audit trails.",
+      "example": "dGhpcyBpcyBhIHNhbXBsZSBub25jZSB2YWx1ZSBmb3IgZGVtbw"
+    },
+
+    "rp_id": {
+      "type": "string",
+      "description": "eTLD+1 (registrable domain) of the site the user authenticated to. Relying parties MUST verify this equals their own domain before accepting.",
+      "example": "humanpresenceprotocol.com"
+    },
+
+    "server_timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp in milliseconds. Authoritative time from the HPP Attestation Server at challenge issuance. This is the NPHT time anchor.",
+      "example": 1743100800000
+    },
+
+    "client_timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp in milliseconds from the client device at attestation submission. Informational — not used for security decisions.",
+      "example": 1743100815000
+    },
+
+    "credential_id": {
+      "type": "string",
+      "format": "base64url",
+      "description": "The enrolled platform authenticator credential identifier. Hardware-bound to the user's device.",
+      "example": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+    },
+
+    "authenticator_data": {
+      "type": "string",
+      "format": "base64url",
+      "description": "Raw WebAuthn authenticatorData. rpIdHash(32) | flags(1) | signCount(4) | extensions. UV flag (bit 2) MUST be 1.",
+      "example": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABg"
+    },
+
+    "assertion_sig": {
+      "type": "string",
+      "format": "base64url",
+      "description": "ECDSA P-256 signature from the platform authenticator's hardware-bound private key.",
+      "example": "MEYCIQDxk2nVzQpL8m9rBfKwT3hN4vYsX0cA7jR1uOp2dEfGhAIhALm3sQ..."
+    },
+
+    "client_data_json": {
+      "type": "string",
+      "format": "base64url",
+      "description": "Base64url-encoded WebAuthn clientDataJSON. Contains type, challenge, origin, crossOrigin.",
+      "example": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZEdo..."
+    },
+
+    "expiry_ms": {
+      "type": "integer",
+      "description": "Unix timestamp in milliseconds. Certificate is invalid at or after this time. Standard lifetime: 3600000ms (1 hour). Re-attestation certificates: 120000ms (2 minutes).",
+      "example": 1743104400000
+    },
+
+    "status": {
+      "type": "string",
+      "enum": ["issued"],
+      "description": "Certificate status. Only 'issued' is valid. Any other value indicates a server-side error.",
+      "example": "issued"
+    },
+
+    "hpp_server_sig": {
+      "type": "string",
+      "format": "base64url",
+      "description": "ECDSA P-256 countersignature from the HPP Attestation Server over the canonical certificate payload. See canonical_signing_payload for reproduction instructions.",
+      "example": "MEUCIQDm4kL9nRpS2xW7vF8hQ3yN0bT5cO6jV1uEpZ3rGdHwIgIA..."
+    },
+
+    "action_scope": {
+      "type": ["string", "null"],
+      "description": "Present only on re-attestation certificates. Contains the hpp-reauth-action value. Null on standard login certificates.",
+      "example": null
+    },
+
+    "uv_flag": {
+      "type": "boolean",
+      "description": "True if UV bit was set in authenticator_data. Convenience field — always true for valid HPP certificates.",
+      "example": true
+    },
+
+    "sign_count": {
+      "type": "integer",
+      "description": "Authenticator signature counter. If stored sign_count >= this value, reject as potential replay.",
+      "example": 42
+    }
+  },
+
+  "canonical_signing_payload": {
+    "description": "How to reproduce the signed payload for hpp_server_sig verification.",
+    "field_order": "Alphabetical by key name",
+    "signed_fields": [
+      "assertion_sig", "authenticator_data", "cert_id", "client_data_json",
+      "client_timestamp", "credential_id", "expiry_ms", "nonce",
+      "rp_id", "server_timestamp"
+    ],
+    "algorithm": "ECDSA P-256 with SHA-256",
+    "procedure": [
+      "1. Construct a JSON object with ONLY the signed_fields listed above",
+      "2. Sort keys alphabetically (they already are in the list above)",
+      "3. JSON.stringify with no whitespace (no spaces, no newlines)",
+      "4. UTF-8 encode the resulting string",
+      "5. Verify the hpp_server_sig over this payload using the HPP public key"
+    ]
+  },
+
+  "relying_party_verification": {
+    "description": "Steps your backend MUST execute on every certificate before issuing a session. All steps required.",
+    "steps": [
+      {"step": 1, "check": "hpp_server_sig", "detail": "Verify ECDSA P-256 signature over canonical payload against pinned HPP public key", "failure": "CERT_SIG_INVALID"},
+      {"step": 2, "check": "rp_id", "detail": "rp_id must exactly equal your site's eTLD+1", "failure": "RP_MISMATCH"},
+      {"step": 3, "check": "expiry_ms", "detail": "expiry_ms must be > Date.now()", "failure": "CERT_EXPIRED"},
+      {"step": 4, "check": "status", "detail": "status must be 'issued'", "failure": "INVALID_STATUS"},
+      {"step": 5, "check": "UV flag", "detail": "Bit 2 of flags byte at offset 32 of authenticator_data must be 1", "failure": "UV_FLAG_MISSING"},
+      {"step": 6, "check": "Replay prevention", "detail": "cert_id must not exist in replay store. After acceptance, store cert_id with TTL = max(0, expiry_ms - now)", "failure": "ALREADY_USED"},
+      {"step": 7, "check": "action_scope (re-attestation only)", "detail": "If re-attestation, action_scope must match the expected value", "failure": "ACTION_SCOPE_MISMATCH"}
+    ]
+  }
+}

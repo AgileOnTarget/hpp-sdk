@@ -1,0 +1,417 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+Copyright 2026 Agile On Target LLC
+
+This file is part of the Human Presence Protocol SDK
+(https://github.com/AgileOnTarget/hpp-sdk). Licensed under the Apache
+License, Version 2.0; see LICENSE, NOTICE, PATENT-NOTICE.md, and
+PATENT-POLICY.md for the scope of the patent grant. All trademarks
+and patent rights reserved by Agile On Target LLC
+(USPTO Customer No. 224891).
+-->
+<!DOCTYPE html>
+<!--
+  HPP Example Integration — Relying Party Frontend
+
+  Minimal working example of a site integrating Human Presence Protocol.
+  This file demonstrates the complete client-side integration pattern:
+    1. Meta tag declaration (required for HPP discovery)
+    2. Loading the HPP public API script
+    3. Calling HPP.requestPresence() and handling the result
+    4. Re-attestation for sensitive actions
+
+  Version: 1.0.0
+  License: Proprietary — Patent Pending
+  Author: Agile On Target LLC
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HPP Example Integration — Acme Corp</title>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STEP 1: HPP Meta Tag (REQUIRED)
+
+       This meta tag tells the HPP client (browser extension, mobile SDK,
+       or native module) that this site supports HPP enrollment and
+       verification.
+
+       Attributes:
+         name="hpp-enrollment"         — Fixed identifier (do not change)
+         data-hpp-callback="/api/hpp"  — Your backend endpoint that receives
+                                         Presence Certificates
+         data-hpp-site-name="..."      — Display name shown in the HPP
+                                         enrollment prompt
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <meta name="hpp-enrollment"
+        data-hpp-callback="/api/hpp"
+        data-hpp-site-name="Acme Corp">
+
+  <style>
+    :root {
+      --navy: #1F3864;
+      --gold: #C9A84C;
+      --success: #2d7d46;
+      --error: #c0392b;
+      --bg: #f8f9fa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: #333;
+      line-height: 1.6;
+    }
+    header {
+      background: var(--navy);
+      color: white;
+      padding: 1.5rem 2rem;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 600; }
+    header p { color: var(--gold); font-size: 0.9rem; margin-top: 0.25rem; }
+    main { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      color: var(--navy);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--gold);
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--navy); color: white; }
+    .btn-gold { background: var(--gold); color: var(--navy); font-weight: 600; }
+    .btn-danger { background: var(--error); color: white; }
+    #status {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+      display: none;
+    }
+    .status-success { background: #e8f5e9; color: var(--success); border: 1px solid #c8e6c9; }
+    .status-error { background: #fce4ec; color: var(--error); border: 1px solid #f8bbd0; }
+    .status-info { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+    .log {
+      margin-top: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      background: #263238;
+      color: #aed581;
+      padding: 1rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+    .log-entry { margin-bottom: 0.25rem; }
+    .log-time { color: #78909c; }
+    .log-warn { color: #ffb74d; }
+    .log-error { color: #ef5350; }
+    .session-info {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .session-info dt { font-weight: 600; color: #666; }
+    .session-info dd { word-break: break-all; }
+    .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+    code {
+      background: #f0f0f0;
+      padding: 0.15rem 0.35rem;
+      border-radius: 3px;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Acme Corp — HPP Integration Example</h1>
+  <p>Human Presence Protocol Reference Integration</p>
+</header>
+
+<main>
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION: Login with HPP                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <h2>1. Login — Request Presence Verification</h2>
+    <p style="margin-bottom:1rem;">
+      Click below to trigger <code>HPP.requestPresence()</code>. The HPP client
+      handles the biometric challenge, and the signed Presence Certificate is
+      delivered directly to your <code>/api/hpp</code> callback.
+    </p>
+    <button class="btn-primary" id="btn-verify" onclick="requestPresence()">
+      Verify Human Presence
+    </button>
+    <div id="status"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION: Session Status                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="card" id="session-card" style="display:none;">
+    <h2>2. Active HPP Session</h2>
+    <dl class="session-info" id="session-info"></dl>
+    <div class="actions">
+      <button class="btn-gold" onclick="requestReAttest()">
+        Re-Attest (Sensitive Action)
+      </button>
+      <button class="btn-danger" onclick="invalidateSession()">
+        Invalidate Session
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION: Re-Attestation Example                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <h2>3. Re-Attestation for Sensitive Actions</h2>
+    <p style="margin-bottom:1rem;">
+      For high-value actions (password change, wire transfer, admin ops),
+      request a scoped re-attestation. The certificate includes an
+      <code>action_scope</code> field your backend validates.
+    </p>
+    <div class="actions">
+      <button class="btn-gold" onclick="requestReAttest('password-change')">
+        Re-Attest: Password Change
+      </button>
+      <button class="btn-gold" onclick="requestReAttest('wire-transfer')">
+        Re-Attest: Wire Transfer
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION: Event Log                                                -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <h2>4. Event Log</h2>
+    <p style="margin-bottom:0.5rem;">
+      All HPP events are surfaced here via <code>HPP.on()</code> listeners.
+    </p>
+    <div class="log" id="log"></div>
+  </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     STEP 2: Load HPP Public API
+
+     This script exposes the global `HPP` object with:
+       HPP.requestPresence(options)  — Trigger verification
+       HPP.getSession()              — Check current session
+       HPP.on(event, callback)       — Subscribe to events
+       HPP.invalidateSession()       — Clear session
+
+     In production, this is injected by the HPP extension's content script.
+     For testing, include it directly.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script src="hpp-api.js"></script>
+
+<script>
+// ── Event Log Utility ─────────────────────────────────────────────────────
+
+const logEl = document.getElementById('log');
+
+function log(msg, level = 'info') {
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+  const cls = level === 'warn' ? 'log-warn' : level === 'error' ? 'log-error' : '';
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="${cls}">${msg}</span>`;
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = `status-${type}`;
+  el.style.display = 'block';
+}
+
+
+// ── STEP 3: Subscribe to HPP Events ──────────────────────────────────────
+
+// The HPP client emits events for every phase of the verification lifecycle.
+// These are fired whether or not your code initiated the flow.
+
+if (typeof HPP !== 'undefined') {
+  HPP.on('hpp:enrolled', (e) => {
+    log(`Enrolled — credential bound to ${e.detail?.rp_id || 'this site'}`);
+  });
+
+  HPP.on('hpp:presence-start', () => {
+    log('Verification started — biometric prompt active');
+    showStatus('Biometric verification in progress...', 'info');
+  });
+
+  HPP.on('hpp:presence-granted', (e) => {
+    const certId = e.detail?.cert_id || 'unknown';
+    log(`Presence GRANTED — cert_id: ${certId}`);
+    showStatus(`Presence verified. Certificate: ${certId}`, 'success');
+    updateSessionDisplay();
+  });
+
+  HPP.on('hpp:presence-denied', (e) => {
+    const error = e.detail?.error || 'unknown';
+    log(`Presence DENIED — ${error}`, 'error');
+    showStatus(`Verification failed: ${error}`, 'error');
+  });
+
+  HPP.on('hpp:presence-error', (e) => {
+    const error = e.detail?.error || 'unknown';
+    log(`Presence ERROR — ${error}`, 'error');
+    showStatus(`Error: ${error}`, 'error');
+  });
+
+  HPP.on('hpp:session-expired', () => {
+    log('Session expired', 'warn');
+    document.getElementById('session-card').style.display = 'none';
+  });
+
+  HPP.on('hpp:reauth-granted', (e) => {
+    const scope = e.detail?.action_scope || 'unscoped';
+    log(`Re-attestation GRANTED — scope: ${scope}`);
+    showStatus(`Re-attestation verified for: ${scope}`, 'success');
+  });
+
+  HPP.on('hpp:reauth-denied', (e) => {
+    log(`Re-attestation DENIED — ${e.detail?.error}`, 'error');
+  });
+
+  log('HPP API loaded — ready for verification');
+} else {
+  log('HPP API not found — install the HPP client', 'error');
+}
+
+
+// ── STEP 4: Request Presence Verification ────────────────────────────────
+
+async function requestPresence() {
+  const btn = document.getElementById('btn-verify');
+  btn.disabled = true;
+  log('Calling HPP.requestPresence()...');
+
+  try {
+    // HPP.requestPresence() returns a Promise that resolves with a result
+    // object. The Presence Certificate itself is delivered server-to-server
+    // via the callback URL — page JS only receives the cert_id.
+    const result = await HPP.requestPresence({
+      timeoutMs: 60000,       // Max wait for biometric (default: 60s)
+    });
+
+    if (result.granted) {
+      log(`Success — cert_id: ${result.cert_id}`);
+      showStatus(`Presence verified. cert_id: ${result.cert_id}`, 'success');
+      updateSessionDisplay();
+    } else {
+      log(`Denied — ${result.error}: ${result.message}`, 'error');
+      showStatus(`Denied: ${result.message}`, 'error');
+    }
+  } catch (err) {
+    log(`Exception: ${err.message}`, 'error');
+    showStatus(`Error: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+
+// ── STEP 5: Check Session ────────────────────────────────────────────────
+
+function updateSessionDisplay() {
+  if (typeof HPP === 'undefined') return;
+
+  const session = HPP.getSession();
+  const card = document.getElementById('session-card');
+  const info = document.getElementById('session-info');
+
+  if (!session || !session.active) {
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+  const expiresIn = Math.max(0, Math.round((session.expiry_ms - Date.now()) / 1000));
+
+  info.innerHTML = `
+    <dt>cert_id</dt>      <dd>${session.cert_id}</dd>
+    <dt>rp_id</dt>        <dd>${session.rp_id}</dd>
+    <dt>credential_id</dt><dd>${session.credential_id}</dd>
+    <dt>Expires in</dt>   <dd>${expiresIn}s</dd>
+    <dt>Status</dt>       <dd style="color:var(--success);font-weight:600;">Active</dd>
+  `;
+}
+
+
+// ── STEP 6: Re-Attestation ──────────────────────────────────────────────
+
+async function requestReAttest(actionScope) {
+  if (typeof HPP === 'undefined') {
+    showStatus('HPP not available', 'error');
+    return;
+  }
+
+  log(`Requesting re-attestation — scope: ${actionScope || 'none'}...`);
+
+  try {
+    // Re-attestation uses the same HPP.requestPresence() call but with
+    // an actionScope parameter. The resulting certificate has a shorter
+    // lifetime (120s default) and includes the action_scope field.
+    const result = await HPP.requestPresence({
+      actionScope: actionScope,
+      timeoutMs: 30000,
+    });
+
+    if (result.granted) {
+      log(`Re-attestation granted — cert_id: ${result.cert_id}, scope: ${actionScope}`);
+      showStatus(`Re-attestation verified for: ${actionScope}`, 'success');
+    } else {
+      log(`Re-attestation denied: ${result.error}`, 'error');
+      showStatus(`Re-attestation denied: ${result.message}`, 'error');
+    }
+  } catch (err) {
+    log(`Re-attestation error: ${err.message}`, 'error');
+  }
+}
+
+
+// ── STEP 7: Invalidate Session ──────────────────────────────────────────
+
+function invalidateSession() {
+  if (typeof HPP === 'undefined') return;
+
+  HPP.invalidateSession();
+  log('Session invalidated');
+  showStatus('Session cleared', 'info');
+  document.getElementById('session-card').style.display = 'none';
+}
+
+
+// ── Refresh session display every 10s ───────────────────────────────────
+setInterval(updateSessionDisplay, 10000);
+</script>
+
+</body>
+</html>

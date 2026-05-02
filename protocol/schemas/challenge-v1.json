@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://humanpresenceprotocol.com/schemas/challenge-v1.json",
+  "title": "HPP Challenge Response",
+  "description": "A signed challenge issued by the HPP Attestation Server in response to GET /v1/challenge. The client MUST verify server_sig and freshness before using the challenge for WebAuthn authentication.",
+  "version": "1.0",
+
+  "type": "object",
+  "required": ["nonce", "rp_id", "server_timestamp", "window_ms", "purpose", "server_sig"],
+
+  "properties": {
+    "nonce": {
+      "type": "string",
+      "format": "base64url",
+      "minLength": 43,
+      "description": "32 bytes, base64url-encoded, single-use. Becomes the WebAuthn challenge parameter and binds the resulting assertion to this specific challenge. The server MUST reject any attestation carrying a nonce that has already been consumed.",
+      "example": "dGhpcyBpcyBhIHNhbXBsZSBub25jZSB2YWx1ZSBmb3IgZGVtbw"
+    },
+
+    "rp_id": {
+      "type": "string",
+      "description": "eTLD+1 (registrable domain) of the requesting site. Must match the WebAuthn rp.id used in the credential.get() call. Computed server-side from the origin; never trusted from client input.",
+      "example": "humanpresenceprotocol.com"
+    },
+
+    "server_timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp in milliseconds. Authoritative server time at challenge issuance. This is the time anchor for the H-Constant enforcement window — not the client device clock.",
+      "example": 1743100800000
+    },
+
+    "window_ms": {
+      "type": "integer",
+      "minimum": 500,
+      "description": "NPHT enforcement window in milliseconds. The minimum wall-clock time the server requires between challenge issuance and attestation submission. Derived from the H-Constant: window_ms >= H_min, where H_min is the platform authenticator's minimum biometric interaction latency (TPM 2.0 floor: ~800ms; Secure Enclave floor: ~600ms). This is NOT an arbitrary timeout — it is the server-enforced biological cost floor.",
+      "example": 30000
+    },
+
+    "purpose": {
+      "type": "string",
+      "enum": ["attest", "enrollment"],
+      "description": "Challenge purpose. 'attest' for login/presence verification flows. 'enrollment' for initial device registration.",
+      "example": "attest"
+    },
+
+    "server_sig": {
+      "type": "string",
+      "format": "base64url",
+      "description": "ECDSA P-256 signature over the canonical challenge payload (nonce, rp_id, server_timestamp, window_ms, purpose — keys sorted alphabetically, JSON.stringify with no whitespace). The client MUST verify this signature against the pinned HPP Attestation Server public key before proceeding with WebAuthn.",
+      "example": "MEUCIQDm4kL9nRpS2xW7vF8hQ3yN0bT5cO6jV1uEpZ3rGdHw"
+    }
+  },
+
+  "examples": [
+    {
+      "_comment": "Standard login challenge — 30 second window",
+      "nonce": "dGhpcyBpcyBhIHNhbXBsZSBub25jZSB2YWx1ZSBmb3IgZGVtbw",
+      "rp_id": "humanpresenceprotocol.com",
+      "server_timestamp": 1743100800000,
+      "window_ms": 30000,
+      "purpose": "attest",
+      "server_sig": "MEUCIQDm4kL9nRpS2xW7vF8hQ3yN0bT5cO6jV1uEpZ3rGdHw"
+    },
+    {
+      "_comment": "Enrollment challenge — 60 second window",
+      "nonce": "ZW5yb2xsbWVudCBjaGFsbGVuZ2UgZXhhbXBsZSBub25jZQ",
+      "rp_id": "example.com",
+      "server_timestamp": 1743100800000,
+      "window_ms": 60000,
+      "purpose": "enrollment",
+      "server_sig": "MEYCIQCn5lM0oRpQ2xW7vF8hQ3yN0bT5cO6jV1uEpZ3rGdHw"
+    }
+  ],
+
+  "verification_procedure": {
+    "description": "Steps the client MUST execute before using a challenge for WebAuthn.",
+    "steps": [
+      {
+        "step": 1,
+        "check": "Signature verification",
+        "detail": "Verify server_sig is a valid ECDSA P-256 signature over the canonical payload. Canonical payload: JSON.stringify with keys in alphabetical order (nonce, purpose, rp_id, server_timestamp, window_ms), no extra whitespace.",
+        "failure_action": "Reject challenge. Error: HPP_CHALLENGE_SIG_INVALID"
+      },
+      {
+        "step": 2,
+        "check": "Freshness",
+        "detail": "Compute abs(Date.now() - server_timestamp). If greater than max_clock_skew_ms (from /v1/config), the challenge is stale or the clock is unacceptably skewed.",
+        "failure_action": "Reject challenge. Error: HPP_CHALLENGE_STALE or HPP_CLOCK_SKEW"
+      },
+      {
+        "step": 3,
+        "check": "Purpose match",
+        "detail": "Verify purpose matches the intended flow ('attest' for login, 'enrollment' for registration).",
+        "failure_action": "Reject challenge. Error: HPP_PURPOSE_MISMATCH"
+      }
+    ]
+  }
+}

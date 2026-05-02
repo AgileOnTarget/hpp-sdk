@@ -5,8 +5,6 @@
 Human Presence Protocol --- External Platform Integration
 
   ----------------------- ---------------------------------------------------------
-  **Document ID**         OSI8_04A_01_IMP_Relying_Party_Implementation_Guide_v4_0
-
   **Title**               Relying Party Implementation Guide
 
   **Version**             4.0
@@ -19,8 +17,6 @@ Human Presence Protocol --- External Platform Integration
   **Date**                April 2026
 
   **Author**              Agile On Target LLC
-
-  **Classification**      Confidential --- M&A Diligence
   ----------------------- ---------------------------------------------------------
 
   -----------------------------------------------------------------------
@@ -843,5 +839,3 @@ chain.
   ----------------- --------------------------- ---------------------------------
 
 **END OF DOCUMENT**
-
-*CONFIDENTIAL --- For Internal M&A / CorpDev / Technical Diligence Only*

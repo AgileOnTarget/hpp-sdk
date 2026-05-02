@@ -119,7 +119,33 @@ The working browser extension is in [`chrome-extension/`](chrome-extension/). Bu
 
 ### As a verifier operator (you want to run your own backend)
 
-The reference verifier implementation is at [`github.com/AgileOnTarget/hpp-verifier`](https://github.com/AgileOnTarget/hpp-verifier) (Express / Node). The protocol's API surface is documented in [`protocol/openapi.yaml`](protocol/openapi.yaml).
+The reference verifier implementation is at [`github.com/AgileOnTarget/hpp-verifier`](https://github.com/AgileOnTarget/hpp-verifier) (Express / Node). The protocol's API surface is documented in [`protocol/openapi.yaml`](protocol/openapi.yaml). For a deeper architecture treatment of the verifier service itself, see [`protocol/docs/reference-verifier-architecture.md`](protocol/docs/reference-verifier-architecture.md).
+
+---
+
+## Documentation
+
+Beyond the per-surface READMEs above, the protocol documentation in [`protocol/docs/`](protocol/docs/) covers everything an integrator needs:
+
+- [`core-spec.md`](protocol/docs/core-spec.md) — Formal model: HPP-PRES, NPHT, Biometric Burn, CCM
+- [`architecture.md`](protocol/docs/architecture.md) — System architecture overview
+- [`relying-party-guide.md`](protocol/docs/relying-party-guide.md) — REST API integration, JWT validation, trust tiering
+- [`rp-use-case-map.md`](protocol/docs/rp-use-case-map.md) — Seven concrete integration patterns for relying parties
+- [`client-sdk-architecture.md`](protocol/docs/client-sdk-architecture.md) — Recommended architecture for any HPP client SDK
+- [`keys-and-genesis.md`](protocol/docs/keys-and-genesis.md) — Verifier signing keys and Genesis Epoch bootstrap
+- [`reference-verifier-architecture.md`](protocol/docs/reference-verifier-architecture.md) — Reference architecture for an HPP Verifier Service
+- [`continuity-reference.md`](protocol/docs/continuity-reference.md) — Practical Continuity Score reference
+- [`device-recovery.md`](protocol/docs/device-recovery.md) — Migration and recovery flows
+- [`ledger-architecture.md`](protocol/docs/ledger-architecture.md) — Local hash-chained ledger format
+- [`canonical-signing.md`](protocol/docs/canonical-signing.md) — Canonical-string construction rules
+- [`receipt-canon.md`](protocol/docs/receipt-canon.md) — Receipt structure and hash linkage
+- [`threat-model.md`](protocol/docs/threat-model.md) — Adversarial games and assumptions
+
+For ready-to-use code, see [`protocol/reference-implementations/`](protocol/reference-implementations/) — Node.js and Python verification libraries, a minimal RP server, and an example integration page. An interactive simulator lives at [`protocol/tools/simulator.html`](protocol/tools/simulator.html).
+
+iOS-specific guidance: [`ios/docs/implementation-notes.md`](ios/docs/implementation-notes.md) — Secure Enclave + Keychain access-control patterns.
+
+Project governance: [`GOVERNANCE.md`](GOVERNANCE.md) and [`MAINTAINERS.md`](MAINTAINERS.md).
 
 ---
 
@@ -127,37 +153,60 @@ The reference verifier implementation is at [`github.com/AgileOnTarget/hpp-verif
 
 ```
 hpp-sdk/
-├── README.md                     ← you are here
-├── LICENSE                       ← Apache 2.0 (with patent-scope note)
-├── NOTICE                        ← Apache 2.0 attribution + patent + trademark reservations
-├── PATENT-NOTICE.md              ← Patent scope, trademarks, inquiries
-├── PATENT-POLICY.md              ← Non-normative status of protocol documentation
-├── CLA.md                        ← Contributor License Agreement (assigns copyright + patent rights to AOT LLC)
-├── AUTHORS                       ← Copyright-holder attribution
-├── THIRD-PARTY-LICENSES.md       ← Third-party component inventory (currently zero)
-├── PATENT-NOTICE.md              ← USPTO Customer No. 224891 disclosure
+├── README.md                            ← you are here
+├── LICENSE                              ← Apache 2.0 (with patent-scope note)
+├── NOTICE                               ← Apache 2.0 attribution + patent + trademark reservations
+├── PATENT-NOTICE.md                     ← USPTO Customer No. 224891 disclosure; patent scope, inquiries
+├── PATENT-POLICY.md                     ← Non-normative status of protocol documentation
+├── CLA.md                               ← Contributor License Agreement
+├── AUTHORS                              ← Copyright-holder attribution
+├── GOVERNANCE.md                        ← How the protocol is governed (decisions, maintainer selection, evolution)
+├── MAINTAINERS.md                       ← Maintainer roles, responsibilities, expectations
+├── THIRD-PARTY-LICENSES.md              ← Third-party component inventory (currently zero)
 ├── CONTRIBUTING.md
-├── SECURITY.md                   ← responsible-disclosure policy
+├── SECURITY.md                          ← Responsible-disclosure policy
 ├── CHANGELOG.md
 │
-├── protocol/                     ← Protocol-agnostic core
-│   ├── openapi.yaml              ← Verifier API (canonical v1)
-│   ├── schemas/                  ← JSON Schemas for receipts, payloads
-│   ├── test-vectors.json         ← Deterministic crypto vectors
+├── protocol/                            ← Protocol-agnostic core
+│   ├── openapi.yaml                     ← Verifier API (canonical v1)
+│   ├── schemas/                         ← JSON Schemas for receipts, payloads
+│   │   ├── presence-receipt.json
+│   │   ├── presence-cert-v1.json        ← Presence-certificate schema
+│   │   ├── challenge-v1.json            ← /challenge endpoint payload
+│   │   ├── attest-request-v1.json       ← /attest endpoint payload
+│   │   └── error-codes-v1.json          ← Canonical error code registry
+│   ├── test-vectors.json                ← Deterministic crypto vectors
 │   ├── docs/
-│   │   ├── core-spec.md          ← Formal model (HPP-PRES / NPHT / Biometric Burn / CCM)
-│   │   ├── canonical-signing.md  ← Canonical-string construction rules
-│   │   ├── receipt-canon.md      ← Receipt structure + hash linkage
-│   │   ├── threat-model.md       ← Adversarial games + assumptions
-│   │   ├── architecture.md       ← System architecture overview
-│   │   └── relying-party-guide.md ← How to integrate HPP without the website SDK
+│   │   ├── core-spec.md                 ← Formal model (HPP-PRES / NPHT / Biometric Burn / CCM)
+│   │   ├── canonical-signing.md         ← Canonical-string construction rules
+│   │   ├── receipt-canon.md             ← Receipt structure + hash linkage
+│   │   ├── threat-model.md              ← Adversarial games + assumptions
+│   │   ├── architecture.md              ← System architecture overview
+│   │   ├── relying-party-guide.md       ← REST API integration, JWT validation, trust tiering
+│   │   ├── client-sdk-architecture.md   ← Recommended architecture for any HPP client SDK
+│   │   ├── keys-and-genesis.md          ← Verifier signing keys + Genesis Epoch bootstrap
+│   │   ├── continuity-reference.md      ← Practical continuity-score reference
+│   │   ├── device-recovery.md           ← Migration + recovery flows
+│   │   ├── rp-use-case-map.md           ← Seven integration patterns for relying parties
+│   │   ├── ledger-architecture.md       ← Local hash-chained ledger format
+│   │   └── reference-verifier-architecture.md  ← Reference architecture for an HPP Verifier Service
+│   ├── reference-implementations/       ← Ready-to-use code samples
+│   │   ├── verify-node.js               ← Node.js verification library
+│   │   ├── verify-python.py             ← Python verification library
+│   │   ├── verify-test-suite.js         ← Cross-implementation test vectors
+│   │   ├── example-rp-server.js         ← Minimal RP backend
+│   │   └── example-integration.html     ← Minimal RP front-end
+│   ├── tools/
+│   │   └── simulator.html               ← Interactive protocol simulator
 │   └── README.md
 │
-├── ios/                          ← iOS Swift Package (HPP)
+├── ios/                                 ← iOS Swift Package (HPP)
 │   ├── Package.swift
-│   ├── Sources/HPP/              ← public API + extracted internals
+│   ├── Sources/HPP/                     ← public API + extracted internals
 │   ├── Tests/HPPTests/
-│   ├── Examples/                 ← illustrative SwiftUI snippets
+│   ├── Examples/                        ← illustrative SwiftUI snippets
+│   ├── docs/
+│   │   └── implementation-notes.md      ← Secure Enclave + Keychain access-control guidance
 │   └── README.md
 │
 ├── website/                      ← Relying-party JS SDK
