@@ -8,8 +8,8 @@ The Human Presence Protocol (HPP) is a cryptographic attestation system that pro
 | Surface | Folder | What it is | Status |
 |---|---|---|---|
 | **Protocol** | [`protocol/`](protocol/) | Canonical spec, OpenAPI for the verifier API, JSON schemas, test vectors, threat model | Stable reference |
-| **iOS** | [`ios/`](ios/) | Swift Package — Secure Enclave key management, biometric auth, attestation orchestration | Phase 2 (extraction in progress) |
-| **Website** | [`website/`](website/) | Drop-in `<script>` tag for relying-party sites to add an HPP presence gate | Phase 2 (spec ready) |
+| **iOS** | [`ios/`](ios/) | Swift Package — Secure Enclave key management, biometric auth, attestation orchestration | Working source (iOS 17+) |
+| **Website** | [`website/`](website/) | Drop-in `<script>` tag for relying-party sites to add an HPP presence gate | Working source |
 | **Chrome Extension** | [`chrome-extension/`](chrome-extension/) | MV3 browser extension implementing HPP browser login | Working source |
 
 This SDK is the **distribution mechanism** for HPP. Without it, HPP is a demo. With it, HPP is a building block any platform can adopt.
@@ -65,39 +65,53 @@ For the formal model (HPP-PRES, NPHT, Biometric Burn, CCM, H-Constant), see [`pr
 
 ### As a relying party (your website wants to gate content behind HPP)
 
-The website SDK (Phase 2 — spec at [`website/REQUIREMENTS.md`](website/REQUIREMENTS.md)) will let you add a presence gate with one script tag:
+Drop the SDK into any HTML page. See [`website/`](website/) for the full reference.
 
 ```html
-<script src="https://hpp-verifier.onrender.com/sdk/hpp.js"></script>
+<div id="hpp-gate"></div>
+<script src="/path/to/hpp.js"></script>
 <script>
   HPP.gate({
-    container: '#content',
-    verifier: 'https://hpp-verifier.onrender.com',
-    site:     'example.com',
-    onUnlock: (session) => { console.log('verified:', session.receipt_id); }
+    container: '#hpp-gate',
+    verifier:  'https://hpp-verifier.onrender.com',
+    site:      'example.com',
+    onUnlock: function (session) {
+      // session.sessionToken — POST to your backend over TLS.
+    }
   });
 </script>
 ```
 
-Until the website SDK ships, see [`protocol/docs/relying-party-guide.md`](protocol/docs/relying-party-guide.md) for the manual integration pattern (call `POST /challenge`, render the QR, poll `GET /relay/:id`, handle the unlock).
+The shipped file is [`website/dist/hpp.js`](website/dist/hpp.js) — vanilla JS, no build step, no dependencies. A live working example is at [`website/examples/basic.html`](website/examples/basic.html).
 
 ### As an iOS app integrator (your app needs to attest)
 
-The iOS SDK (Phase 2) will be a Swift Package:
+The iOS SDK is a Swift Package at [`ios/`](ios/). In Xcode: **File → Add Package Dependencies…** and paste this repo's URL.
 
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/AgileOnTarget/hpp-sdk", from: "0.1.0"),
+    .package(url: "https://github.com/AgileOnTarget/hpp-sdk", branch: "main"),
 ],
 targets: [
     .target(name: "MyApp", dependencies: [
-        .product(name: "HPPCore", package: "hpp-sdk"),
+        .product(name: "HPP", package: "hpp-sdk"),
     ])
 ]
 ```
 
-Until then, the live HPP iOS app (`HPPDemo`) is the reference implementation; the relevant Swift sources are in [`HPPDemo/Services/`](https://github.com/AgileOnTarget/hpp-verifier) (private) and will be extracted to [`ios/Sources/HPPCore/`](ios/) in Phase 2.
+```swift
+import HPP
+
+let client = HPPClient(configuration: HPPConfiguration(
+    verifierURL: URL(string: "https://hpp-verifier.onrender.com")!,
+    site: "example.com"
+))
+let result = try await client.attest(reason: "Verify your presence to log in")
+// → result.sessionToken, result.receiptId, result.assurance
+```
+
+Requires a physical iPhone or iPad with Secure Enclave; iOS 17+. See [`ios/README.md`](ios/README.md) for the full API.
 
 ### As a Chrome extension developer
 
@@ -139,10 +153,18 @@ hpp-sdk/
 │   │   └── relying-party-guide.md ← How to integrate HPP without the website SDK
 │   └── README.md
 │
-├── ios/                          ← iOS Swift Package (Phase 2)
+├── ios/                          ← iOS Swift Package (HPP)
+│   ├── Package.swift
+│   ├── Sources/HPP/              ← public API + extracted internals
+│   ├── Tests/HPPTests/
+│   ├── Examples/                 ← illustrative SwiftUI snippets
 │   └── README.md
 │
-├── website/                      ← Relying-party JS SDK (Phase 2)
+├── website/                      ← Relying-party JS SDK
+│   ├── src/hpp.js                ← source (vanilla, no build)
+│   ├── dist/hpp.js               ← shipped file (identical to src)
+│   ├── examples/basic.html       ← working drop-in example
+│   ├── test/smoke.html           ← in-browser smoke tests
 │   └── README.md
 │
 ├── chrome-extension/             ← MV3 browser extension (working)
@@ -189,17 +211,17 @@ Each of the above requires a **separate written patent license** from Agile On T
 
 ## Status
 
-| Component | State | Phase |
-|---|---|---|
-| Protocol spec | Stable v1.0 reference | Live |
-| OpenAPI YAML | Canonical v1.0 | Live |
-| Test vectors | Stable MVP | Live |
-| Chrome extension | Working source (MV3) | Live |
-| iOS Swift Package | Documented + planned | Phase 2 |
-| Website SDK | Specced + planned | Phase 2 |
-| Reference verifier | At [`hpp-verifier`](https://github.com/AgileOnTarget/hpp-verifier) (production live) | Live |
+| Component | State |
+|---|---|
+| Protocol spec | Stable v1.0 reference |
+| OpenAPI YAML | Canonical v1.0 |
+| Test vectors | Stable MVP |
+| Chrome extension | Working source (MV3) |
+| iOS Swift Package | Working source (iOS 17+, builds + tests passing) |
+| Website SDK | Working source (vanilla JS, no build) |
+| Reference verifier | At [`hpp-verifier`](https://github.com/AgileOnTarget/hpp-verifier) (production live at `hpp-verifier.onrender.com`) |
 
-This is **v0.1.0 — initial public scaffold (Phase 1)**. See [`CHANGELOG.md`](CHANGELOG.md).
+See [`CHANGELOG.md`](CHANGELOG.md) for the release history.
 
 ---
 

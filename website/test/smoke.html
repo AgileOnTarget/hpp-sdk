@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>HPP SDK Smoke Test</title>
+  <style>
+    body { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+           background: #fafaf8; color: #222; padding: 2rem; max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 1.2rem; }
+    .row { padding: .35rem 0; border-bottom: 1px solid #eee; }
+    .pass { color: #2a7a2a; }
+    .fail { color: #8b1a1a; font-weight: bold; }
+    #gate { margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>HPP SDK Smoke Test</h1>
+  <div id="results"></div>
+  <div id="gate"></div>
+
+  <script src="../dist/hpp.js"></script>
+  <script>
+    var results = document.getElementById('results');
+    function record(name, pass, detail) {
+      var div = document.createElement('div');
+      div.className = 'row ' + (pass ? 'pass' : 'fail');
+      div.textContent = (pass ? '✓ ' : '✗ ') + name + (detail ? ' — ' + detail : '');
+      results.appendChild(div);
+    }
+
+    record('window.HPP exists',           typeof window.HPP === 'object' && window.HPP !== null);
+    record('window.hpp aliased',          window.hpp === window.HPP);
+    record('HPP.version is string',       typeof window.HPP.version === 'string', window.HPP && window.HPP.version);
+    record('HPP.gate is function',        typeof window.HPP.gate === 'function');
+    record('HPP namespace is frozen',     Object.isFrozen(window.HPP));
+
+    try {
+      window.HPP.gate({});
+      record('gate() with no opts throws', false, 'did not throw');
+    } catch (e) {
+      record('gate() with no opts throws', true, e.message);
+    }
+
+    try {
+      window.HPP.gate({ container: '#gate', verifier: 'not-a-url' });
+      record('gate() rejects non-URL verifier', false, 'did not throw');
+    } catch (e) {
+      record('gate() rejects non-URL verifier', true, e.message);
+    }
+
+    // Live render — uses the production verifier; will hit /relay/create.
+    var ctrl = window.HPP.gate({
+      container: '#gate',
+      verifier:  'https://hpp-verifier.onrender.com',
+      site:      'example.com',
+      onUnlock:  function () {},
+      onError:   function (err) { console.warn('[smoke] live gate error:', err); },
+    });
+    record('gate() returns controller',   typeof ctrl === 'object' && typeof ctrl.destroy === 'function');
+
+    // Wait briefly for the shadow root to mount, then assert structure.
+    setTimeout(function () {
+      var host = document.querySelector('#gate [data-hpp-gate]');
+      record('gate host element mounted',  !!host);
+      record('shadow root attached',       host && !!host.shadowRoot);
+      var qr = host && host.shadowRoot && host.shadowRoot.querySelector('.hpp-qr');
+      record('QR <img> rendered',          !!qr);
+      var status = host && host.shadowRoot && host.shadowRoot.querySelector('.hpp-status');
+      record('status element rendered',    !!status);
+    }, 200);
+  </script>
+</body>
+</html>

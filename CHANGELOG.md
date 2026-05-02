@@ -4,6 +4,46 @@ All notable changes to this SDK are documented here. The format follows [Keep a 
 
 ---
 
+## [0.2.0] — 2026-05-02 — iOS Swift Package + Website JS drop-in shipped
+
+The two surfaces previously labeled "Phase 2 — planned" are now working source.
+
+### Added — iOS Swift Package (`ios/`)
+- **`Package.swift`** — SPM manifest, iOS 17+, single library product `HPP`.
+- **`Sources/HPP/HPPClient.swift`** — public actor with `attest(reason:)`, `depositToRelay(_:relayId:)`, `keyExists`, `publicKeyFingerprint()`, `publicKeyB64URL()`, `deleteKey()`. Wraps the canonical `POST /challenge` → biometric → SE sign → `POST /verify` flow against any HPP verifier.
+- **`Sources/HPP/HPPConfiguration.swift`** — verifier URL, site, timeouts, configurable Keychain service/account.
+- **`Sources/HPP/HPPError.swift`** — typed error enum: `secureEnclaveUnavailable`, `biometricCancelled`, `verifierColdStart`, `verificationRejected(code, reason)`, etc.
+- **`Sources/HPP/AttestationResult.swift`** — `sessionToken`, `receiptId`, `assurance` (enum: `.faceID` / `.touchID` / `.passcode`), `publicKeyFingerprint`.
+- **`Sources/HPP/Internal/`** — extracted from the HPP demo app:
+  - `SecureEnclaveKeyManager` (P-256 in SE, Keychain-backed handle, `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`)
+  - `BiometricAuthManager` (`actor`; Face ID → Touch ID → passcode fallback chain)
+  - `JWTBuilder` (canonical ES256 HPP-Proof JWT with sorted-keys payload, RFC 7518 §3.4 raw IEEE P1363 signature)
+  - `Base64URL`, `ChallengeResponse` / `VerifySuccess` / `VerifyFailure` wire types
+- **`Tests/HPPTests/`** — 10 tests (Base64URL vectors, JWT structure, configuration). Pass via `xcodebuild -scheme HPP -destination 'platform=iOS Simulator,name=iPhone 17' test`.
+- **`Examples/MinimalAttestApp.swift`** — illustrative SwiftUI snippet (not compiled; for documentation).
+- **`README.md`** — install, usage, browser-relay flow, key management, requirements, wire compatibility table.
+
+### Added — Website JS SDK (`website/`)
+- **`src/hpp.js`** — vanilla JS SDK exposing a single global `HPP` (frozen) with one method, `HPP.gate({...})`. No build step, no dependencies, ES5-compatible. Mounts the gate UI inside an open Shadow DOM (`:host { all: initial }`) so all styling is isolated from the host page. Calls `POST /relay/create`, renders the verifier's `/qr?relay_id=...` PNG, and polls `GET /relay/:id` every 2s until `status === "ready"` (then fires `onUnlock({ sessionToken })`) or `expired` / `not_found` (then `onExpired()`). Returns a controller with `destroy()` to stop polling and unmount.
+- **`dist/hpp.js`** — shipped file, identical to `src/hpp.js`. Exists so relying parties can `<script src=".../dist/hpp.js">` against a stable filename.
+- **`examples/basic.html`** — working drop-in example against the production verifier.
+- **`test/smoke.html`** — in-browser smoke tests covering the public surface (frozen namespace, argument validation, shell DOM mounting, controller shape) plus a live integration that exercises `/relay/create` + `/qr` + the polling round-trip. 12/12 passing locally.
+- **`README.md`** — install, options table, lifecycle description, style-isolation notes, backend-validation responsibilities.
+
+### Changed
+- **Root `README.md`** — Status table for `iOS` and `Website` updated from "Phase 2 (extraction in progress)" / "Phase 2 (spec ready)" to "Working source". Quick Start replaced the placeholder install instructions with the real ones (Swift Package URL, vanilla `<script>` tag). Repository Layout now shows the populated `ios/` and `website/` trees.
+- **`.gitignore`** — `website/dist/` removed from ignore list (the shipped `dist/hpp.js` IS source, not a build artifact). `.claude/` added (local preview-server config; never committed).
+
+### Wire compatibility
+Both surfaces target the **shipping HPP verifier API** at `hpp-verifier.onrender.com`: `POST /challenge`, `POST /verify` (Bearer JWT), `POST /relay/:id` for the iOS device-side flow; `POST /relay/create`, `GET /qr?relay_id=...`, `GET /relay/:id` for the browser-side flow. The `protocol/openapi.yaml` describes a different (canonical v1) API surface which the production verifier does not yet implement; that drift will be reconciled in a separate doc-fix release.
+
+### Acquisition posture
+The SDK is now executable end-to-end without recourse to private repos: a third-party iOS developer can `import HPP` and call `attest(...)`; a relying-party site can `<script>` in `dist/hpp.js` and call `HPP.gate(...)`. No part of the iOS or website surface depends on `hpp-monorepo` (the private internal repo).
+
+No rights added or removed vs. v0.1.4. Apache 2.0 grant, CLA terms, and patent scope unchanged. New code carries the same SPDX headers as the existing chrome-extension files.
+
+---
+
 ## [0.1.4] — 2026-04-17 — CLA Assistant automated signing
 
 ### Added

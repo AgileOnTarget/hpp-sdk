@@ -27,7 +27,7 @@ yarn.lock
 *.tgz
 .npm
 
-# Swift / Xcode (for Phase 2)
+# Swift / Xcode
 .build/
 .swiftpm/
 DerivedData/
@@ -41,9 +41,12 @@ chrome-extension/dist/
 chrome-extension/*.zip
 chrome-extension/build/
 
-# Website SDK build artifacts (Phase 2)
-website/dist/
+# Website SDK build artifacts (the shipped dist/hpp.js IS source, so don't
+# ignore the dist/ directory itself — only transient build artifacts beside it).
 website/build/
+
+# Local Claude Code preview config
+.claude/
 
 # Environment / secrets — NEVER COMMIT
 .env

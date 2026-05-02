@@ -1,181 +1,89 @@
-# Website SDK — Phase 2
+# HPP Website SDK
 
-The Website SDK is the **drop-in `<script>` tag** that lets any relying-party site add an HPP presence gate without copying client-side integration code.
+Drop-in `<script>` tag for relying-party websites that want to gate content behind a [Human Presence Protocol](https://github.com/AgileOnTarget/hpp-sdk) attestation.
 
-> **Status: Phase 2 (planned).** The full requirements specification is at [`REQUIREMENTS.md`](REQUIREMENTS.md). The reference implementation pattern lives inside the unified site (`unified-site.js`) in the production reference verifier today; the extraction work is what Phase 2 ships.
+The SDK renders a QR code, polls the verifier's relay endpoint every 2 seconds, and fires `onUnlock(session)` when the user's iPhone deposits a valid session token. Pure vanilla JS, no build step, no dependencies, all styling isolated in a Shadow DOM.
 
----
+- **Browsers:** any with `fetch`, Shadow DOM, and ES5 (i.e. all modern browsers)
+- **License:** Apache 2.0 (see repo root)
+- **Patents:** USPTO Customer No. 224891 — see [`PATENT-NOTICE.md`](../PATENT-NOTICE.md) and [`PATENT-POLICY.md`](../PATENT-POLICY.md) at the repo root.
 
-## Anticipated v0.2.0 API
+## Install
+
+Self-host or include from the repo's CDN of your choice:
 
 ```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Premium Content</title>
-</head>
-<body>
-  <div id="content" style="display:none;">
-    <h1>Premium content goes here</h1>
-    <p>Visible only after presence verification.</p>
-  </div>
-
-  <script src="https://hpp-verifier.onrender.com/sdk/hpp.js"></script>
-  <script>
-    HPP.gate({
-      // Where to mount the gate UI
-      container: '#content',
-
-      // Verifier endpoint (defaults to production)
-      verifier: 'https://hpp-verifier.onrender.com',
-
-      // Site identifier (your domain)
-      site: 'example.com',
-
-      // Optional: site-defined session duration in seconds (default 600)
-      sessionDuration: 1800,
-
-      // Optional: age predicate (will request age_qualified boolean)
-      // The user's DOB never leaves their device; only yes/no comes back.
-      agePredicate: { minAge: 18 },
-
-      // Hook fired when the user completes a successful round-trip
-      onUnlock: (session) => {
-        console.log('verified human, session:', session.sessionToken);
-        console.log('receipt id:', session.receiptId);
-        document.querySelector('#content').style.display = 'block';
-      },
-
-      // Hook fired when the user explicitly cancels or times out
-      onCancel: (reason) => {
-        console.log('cancelled:', reason);
-      },
-
-      // Optional event hooks for finer integration
-      on: {
-        challenge: (c)  => console.log('challenge issued', c.challengeId),
-        qrShown:   (q)  => console.log('QR rendered', q.relayId),
-        attest:    (r)  => console.log('phone attested', r.receiptId),
-        rateLimit: (e)  => console.log('NPHT rate limit hit', e.retryAfterMs),
-        error:     (e)  => console.error('hpp error', e.code, e.message),
-      },
-
-      // Visual customization (defaults match the unified site's HPP palette)
-      style: {
-        accent:        '#1a3a6b',  // navy
-        accentSecond:  '#8b6914',  // gold
-        warmWhite:     '#fafaf8',
-        font:          'system',   // 'system' | 'serif' | 'mono'
-      },
-    });
-  </script>
-</body>
-</html>
+<script src="https://your-cdn.example/hpp.js"></script>
 ```
 
-That's the entire integration. One `<script>` tag, one `HPP.gate({...})` call.
+The shipped file is [`dist/hpp.js`](dist/hpp.js). It is identical to [`src/hpp.js`](src/hpp.js) — there is no build step.
 
----
+## Usage
 
-## NPM package alternative
+```html
+<div id="hpp-gate"></div>
 
-For build-tooled sites:
-
-```bash
-npm install @humanpresenceprotocol/sdk
+<script src="/path/to/hpp.js"></script>
+<script>
+  HPP.gate({
+    container: '#hpp-gate',
+    verifier:  'https://hpp-verifier.onrender.com',
+    site:      'example.com',
+    onUnlock: function (session) {
+      // session.sessionToken — POST this to your backend over TLS.
+      // Your backend should validate it against the verifier's receipt chain.
+    },
+    onExpired: function () { /* QR expired */ },
+    onError:   function (err) { /* setup or transport error */ },
+  });
+</script>
 ```
 
-```javascript
-import { gate } from '@humanpresenceprotocol/sdk';
+`HPP.gate(...)` returns a controller:
 
-gate({
-  container: '#content',
-  verifier: 'https://hpp-verifier.onrender.com',
-  site: 'example.com',
-  onUnlock: (session) => { /* ... */ },
-});
+```js
+var ctrl = HPP.gate({ ... });
+// later, e.g. on page navigation:
+ctrl.destroy();   // stops polling, removes the gate from the DOM
 ```
 
-Same API surface; tree-shakable; TypeScript types ship with the package.
+## Options
 
----
+| Option | Type | Default | Notes |
+|---|---|---|---|
+| `container` | CSS selector or `HTMLElement` | — | **Required.** Where the gate mounts. |
+| `verifier`  | absolute URL | — | **Required.** Base URL of the HPP verifier. |
+| `site`      | string | hostname of `verifier` | Site identifier baked into the QR. Override only if your verifier is hosted on a different origin from your relying-party page. |
+| `sessionDuration` | number (seconds) | `600` | TTL of the session token issued on success. |
+| `pollIntervalMs`  | number (ms, ≥ 500) | `2000` | How often to poll `/relay/:id`. |
+| `onUnlock`  | `(session) => void` | — | Fires once with `{ sessionToken }` on success. |
+| `onExpired` | `() => void` | — | Fires when the verifier reports the relay as `expired` or `not_found`. |
+| `onError`   | `(err) => void` | — | Fires on setup failures (e.g. `/relay/create` non-200). Transient poll failures are silent. |
 
-## What this replaces
+## What the SDK does (under the hood)
 
-Today, a relying party that wants HPP has to:
+1. `POST {verifier}/relay/create` → `{ relay_id }`
+2. Render an `<img>` whose `src` is `{verifier}/qr?relay_id=…&site=…&session_duration=…` (a server-rendered QR PNG).
+3. `setInterval(2000)` → `GET {verifier}/relay/:id` returning `{ status, session_token? }`.
+4. On `status === "ready"`, stop polling and fire `onUnlock({ sessionToken })`.
+5. On `status === "expired" | "not_found"`, stop polling and fire `onExpired()`.
 
-1. Read the welcome-gate code in `unified-site.js` (~3,000 lines)
-2. Copy out the relevant client-side fragments (challenge call, QR rendering, relay polling, unlock callback)
-3. Adapt to their own DOM structure and styling
-4. Test against the canonical protocol
+The SDK never holds a session token in `localStorage` or `cookie` — the token is only exposed once, via `onUnlock`, so your app decides exactly how to forward it to your backend.
 
-After Phase 2, they'll add **one script tag**.
+## Style isolation
 
----
+The gate mounts inside an open Shadow DOM (`<div data-hpp-gate>` with `attachShadow({ mode: 'open' })`). All SDK styles are scoped to that root via `:host { all: initial }`, so nothing on your page bleeds in or out. The host element inherits its layout from its container, so position the gate by styling your container, not the SDK internals.
 
-## Contents (will populate in Phase 2)
+## Backend validation (your responsibility)
 
+The session token returned to `onUnlock` is opaque. Your backend should validate it against the verifier — typically by `GET {verifier}/session?session_token=…` or by walking the receipt chain at `GET {verifier}/receipt/:receipt_id`. The SDK intentionally does no client-side validation: the token must round-trip through your trust boundary.
+
+## Browser smoke test
+
+Open [`test/smoke.html`](test/smoke.html) in any local HTTP server. The page asserts the public surface (`window.HPP`, `HPP.version`, frozen namespace, argument validation, shell DOM mounting) and calls `HPP.gate(...)` against the production verifier so you can watch the live `/relay/create` + `/qr` + polling round-trip.
+
+```sh
+# from this folder
+python3 -m http.server 8765
+# then open http://127.0.0.1:8765/test/smoke.html
 ```
-website/
-├── REQUIREMENTS.md             ← detailed spec (port of HPP_ENT2_Website_SDK_Requirements_v1_0.md)
-├── package.json
-├── src/
-│   ├── hpp.js                  ← entry point exposing the global HPP namespace
-│   ├── gate.js                 ← gate UI + lifecycle
-│   ├── challenge.js            ← /challenge call
-│   ├── relay.js                ← polling logic
-│   ├── qr.js                   ← QR rendering
-│   ├── events.js               ← event hooks
-│   ├── style.js                ← runtime style injection
-│   └── types.d.ts              ← TypeScript types
-├── dist/
-│   ├── hpp.min.js              ← single-file CDN bundle
-│   ├── hpp.esm.js              ← ESM build for bundlers
-│   └── hpp.d.ts                ← TypeScript declarations
-├── examples/
-│   ├── minimal-html/           ← <script> drop-in
-│   ├── react/                  ← React component wrapper
-│   └── npm-package/            ← bundler integration
-└── tests/
-    ├── unit/
-    └── integration/            ← against a mock verifier
-```
-
----
-
-## Privacy properties
-
-The Website SDK does not introduce any new privacy implications beyond what HPP already does. The relying party site never sees:
-
-- The user's DOB (only `age_qualified` boolean if requested)
-- The user's biometric data (Face ID never leaves Apple's framework)
-- The user's identity (only a pseudonymous public key fingerprint)
-- The user's other site sessions (cross-tenant isolation enforced at the verifier)
-
-The relying party DOES receive: session token, receipt ID, expiry timestamp, optional age predicate result. That's it.
-
----
-
-## Phase 2 plan
-
-1. Port the existing welcome-gate client-side code from `unified-site.js` into `website/src/`
-2. Refactor as a self-contained module with the configurable API surface above
-3. Build pipeline: bundle to `dist/hpp.min.js` for CDN, `dist/hpp.esm.js` for bundlers
-4. Publish the CDN bundle to the production verifier at `https://hpp-verifier.onrender.com/sdk/hpp.js`
-5. Publish to npm as `@humanpresenceprotocol/sdk`
-6. Examples for HTML drop-in, React, and bundler integrations
-7. Integration tests against a mock verifier
-8. Tag `v0.2.0`
-
-Closes the parent project's backlog item ENT.2 — Multi-Tenant Website SDK.
-
-
----
-
-## License, patents, and trademarks
-
-- **Code:** [Apache License, Version 2.0](../LICENSE). Copyright © 2026 Agile On Target LLC.
-- **Patent scope:** [`../PATENT-NOTICE.md`](../PATENT-NOTICE.md) and [`../PATENT-POLICY.md`](../PATENT-POLICY.md). USPTO Customer No. 224891. All patent rights reserved by Agile On Target LLC; Apache 2.0 §3 grant is narrow and does not authorize commercial production deployment, OEM embedding, or ground-up reimplementation.
-- **Trademarks:** `HPP` (USPTO Serial 99656390), `Human Presence Protocol` (Serial 99656359), + 3 others filed 2026-02-17 — see [`../NOTICE`](../NOTICE) and [`../PATENT-NOTICE.md §4`](../PATENT-NOTICE.md). Use `℠` or `™` (not `®` until registration issues).
-- **Attribution:** [`../NOTICE`](../NOTICE), [`../AUTHORS`](../AUTHORS), [`../THIRD-PARTY-LICENSES.md`](../THIRD-PARTY-LICENSES.md).
-- **Contributions:** governed by [`../CLA.md`](../CLA.md).
