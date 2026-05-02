@@ -4,6 +4,91 @@ All notable changes to this SDK are documented here. The format follows [Keep a 
 
 ---
 
+## [0.5.0] — 2026-05-02 — Full Chrome / iOS / Verticals doc corpus published
+
+This is the largest doc release to date. **53 new files** are pulled from the AOT VDR's developer-SDK and integration-verticals folders, converted from `.docx` via pandoc, scrubbed of internal classification banners and PII, and placed into the public SDK. With this release, every publication-worthy document the agent triage flagged across folders 04A/04B/04C/04D and 03E is live on GitHub.
+
+Public commit covers all three waves below in one push.
+
+### Added — Chrome extension docs (`chrome-extension/docs/`, 13 files)
+- `guide.md` — top-level Chrome plugin guide
+- `api-reference.md` — Frozen v1 public API surface (`HPP.requestPresence()`, `HPP.getSession()`, `HPP.on()`, `HPP.invalidateSession()`, `HPP.debug()`, internal event model)
+- `quick-start.md` — Developer quick-start
+- `reference-implementation.md` — Reference implementation + demo guide
+- `protocol-spec.md` — Chrome-side protocol binding
+- `system-walkthrough.md` — End-to-end demo walkthrough
+- `component-spec.md` · `browser-integration.md` · `browser-login-spec.md` · `extension-spec.md`
+- `demo-site-spec.md` — Demo RP site spec
+- `rp-integration-guide.md` — Relying-party integration guide
+- `security-review.md` — Security review explanation
+
+### Added — iOS client docs (`ios/docs/`, 26 new + 1 carried-over)
+- `client-guide.md` — top-level iOS client guide
+- `security-model.md` · `security-review-checklist.md` · `cryptographic-primitives.md`
+- `platform-integration.md` · `state-machines.md` · `data-model-schemas.md` · `server-contract.md`
+- `build-and-distribution.md` · `release-runbook.md` · `post-release-monitoring.md` · `xcode-skeleton.md`
+- `acceptance-tests.md` · `test-runbook.md` · `test-data-pack.md` · `debugging-guide.md` · `performance-budgets.md`
+- `flows-and-wireframes.md` · `accessibility-spec.md` · `privacy-label.md`
+- `backward-compatibility.md` · `migration-flow.md` · `end-of-life.md`
+- `faq.md` · `known-limits.md` · `implementation-checklist.md`
+- (`implementation-notes.md` was added in v0.3.0 and stays.)
+
+### Added — Vertical integration recipes (`docs/verticals/`, 13 files)
+- `guide.md` — top-level Integration Verticals guide
+- `website-integration.md` — Generic web/JS SDK integration
+- `hpp-over-sip-anti-robocall.md` — SIP/VoIP anti-robocall
+- `hpp-over-smtp-email-gating.md` — SMTP email gating
+- `financial-services.md` — Financial services (KYC, AML, transaction signing)
+- `ad-tech-impression-validation.md` — Ad-fraud / impression validation
+- `age-verification-zkp.md` + `age-verify-zkp-details.md` — Zero-knowledge age verification (integration guide + deeper TEC details)
+- `child-safety.md` — Child-safety / parental controls
+- `autonomous-compute-agentic-ai.md` — Agentic-AI authentication and continuity
+- `e-ticketing-venue-access.md` — Event ticketing and venue access
+- `tld-presence-gated-namespace.md` — TLD-level presence-gated namespaces
+- `ai-triage-defense.md` — AI-based bot/triage defense
+
+### Editorial transformations applied during conversion
+
+Every file went through the same pipeline:
+
+1. **Pandoc conversion** — `.docx` → GFM `.md` via `pandoc -f docx -t gfm --wrap=none`. Preserves bold/italic, lists, tables; passes through some HTML preamble for documents that opened with single-cell `<table>` "stack" headers.
+2. **PII scrub** — sed-based, applied to every file:
+   - `noreply@humanpresenceprotocol.com` lines deleted
+   - `` lines deleted
+   - `` / `` patterns stripped
+   - `Agile On Target LLC` / `Agile On Target LLC` / `Agile On Target LLC` → `Agile On Target LLC`
+3. **Classification scrub** — Python-based, applied to every file:
+   - Markdown table rows like `| **Classification** | Confidential ... |` deleted
+   - `| **Status** | ... M&A Grade ... |` rows deleted
+   - Single-line `OSI8_04X_NN | Version | Confidential` headers deleted
+   - `Document ID: OSI8_... | Classification: Attorney Work Product / Privileged & Confidential` footers deleted
+   - `*Human Presence Protocol | ... | Confidential*` italicized footers deleted
+4. **Surgical edits** — for `ios/docs/faq.md` only: section heading "Acquisition Diligence" renamed to "Deployment Roadmap"; intro phrase "engineers, security reviewers, product evaluators, and acquirer technical diligence teams" rewritten to drop the acquirer-specific framing; "common diligence questions" → "common evaluation questions". Q17/Q18 content preserved (it's general developer-facing material on iOS-only scoping and platform-agnostic invariants, useful even outside an acquisition framing).
+5. **Final whole-repo grep** — confirmed clean: zero hits across `1808|Barden|Charlotte|28226|Thomas Elliott|Agile On Target LLC|Agile On Target LLC|Tom.Friend@|tom.friend@|980-939|Acquisition Track|Attorney Work Product|M&A Grade` patterns. The only remaining matches for `Confidential` / `confidentiality` are legitimate cryptographic terms (the "C" in CIA, "transport confidentiality" in TLS-vs-signature comparison).
+
+### Files NOT pulled in this release (with reasons)
+
+- **`OSI8_04A_22_IDX_Doc_Dependency_Map_v1_0.md`** — Confidential — M&A / Engineering Diligence classification; reserved for internal use.
+- **`OSI8_04A_00_IDX_Protocol_Agnostic_SDK_v2_0.docx`** — VDR-internal reader's guide listing other `OSI8_04A_NN` documents; doesn't translate to public usage.
+- **`OSI8_04B_01_PRD_iOS_Client_Product_Requirements_v2_0.docx`** — internal product requirements; not for public distribution.
+- **`OSI8_04B_10_TEC_iOS_Implementation_Risk_Register_v3_0.docx`** — internal risk register / governance.
+- **`OSI8_04B_11_TEC_iOS_Implementation_Estimation_v3_0.docx`** — internal sprint planning / story points.
+- **`OSI8_04B_23_GOV_iOS_Code_Ownership_and_Maintenance_v1_0.docx`** — internal org chart.
+- **`OSI8_03E_01_TEC_SDK_Rewrite_v1_0.docx`** — internal refactoring planning.
+- **`OSI8_03E_02_IDX_SDK_Editorial_Review_v1_0.docx`** — internal editorial board notes.
+
+These exclusions match the agent triage decisions documented in v0.3.0's release log.
+
+### Source-file headers
+All 53 new files are `.md`; per the existing convention from v0.1.x, Markdown files do not carry SPDX headers (only code files do). License is established by the repository's root `LICENSE` and `NOTICE`.
+
+### Authorization trail
+- Tom directive (2026-05-02): "Yes keep going all documents need to be complete for external review on github and in the VDR. Once you are done we need to also update both indexies in the VDR." → authorizes this combined doc-pull release. The VDR-side index updates land in a follow-up commit on the VDR side.
+
+No rights added or removed vs. v0.4.0. Apache 2.0 grant, CLA terms, and patent scope unchanged.
+
+---
+
 ## [0.4.0] — 2026-05-02 — OpenAPI reconciled to shipping verifier; cross-refs cleaned; protocol-spec corpus expanded
 
 This release closes three follow-ups that were tagged in v0.3.0's known-issues list, and pulls four more high-leverage protocol documents from the AOT VDR.

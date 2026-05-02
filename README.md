@@ -158,9 +158,52 @@ Beyond the per-surface READMEs above, the protocol documentation in [`protocol/d
 
 For ready-to-use code, see [`protocol/reference-implementations/`](protocol/reference-implementations/) — Node.js and Python verification libraries, a minimal RP server, and an example integration page. An interactive simulator lives at [`protocol/tools/simulator.html`](protocol/tools/simulator.html).
 
-iOS-specific guidance: [`ios/docs/implementation-notes.md`](ios/docs/implementation-notes.md) — Secure Enclave + Keychain access-control patterns.
+### iOS client docs
 
-Project governance: [`GOVERNANCE.md`](GOVERNANCE.md) and [`MAINTAINERS.md`](MAINTAINERS.md).
+The full iOS client documentation set lives in [`ios/docs/`](ios/docs/) — 27 documents covering everything from the client guide through end-of-life policy.
+
+- **[`client-guide.md`](ios/docs/client-guide.md)** — top-level iOS client guide
+- **[`implementation-notes.md`](ios/docs/implementation-notes.md)** — Secure Enclave + Keychain access-control patterns
+- **[`security-model.md`](ios/docs/security-model.md)** · **[`security-review-checklist.md`](ios/docs/security-review-checklist.md)** · **[`cryptographic-primitives.md`](ios/docs/cryptographic-primitives.md)**
+- **[`platform-integration.md`](ios/docs/platform-integration.md)** · **[`state-machines.md`](ios/docs/state-machines.md)** · **[`data-model-schemas.md`](ios/docs/data-model-schemas.md)** · **[`server-contract.md`](ios/docs/server-contract.md)**
+- **[`build-and-distribution.md`](ios/docs/build-and-distribution.md)** · **[`release-runbook.md`](ios/docs/release-runbook.md)** · **[`post-release-monitoring.md`](ios/docs/post-release-monitoring.md)** · **[`xcode-skeleton.md`](ios/docs/xcode-skeleton.md)**
+- **[`acceptance-tests.md`](ios/docs/acceptance-tests.md)** · **[`test-runbook.md`](ios/docs/test-runbook.md)** · **[`test-data-pack.md`](ios/docs/test-data-pack.md)** · **[`debugging-guide.md`](ios/docs/debugging-guide.md)** · **[`performance-budgets.md`](ios/docs/performance-budgets.md)**
+- **[`flows-and-wireframes.md`](ios/docs/flows-and-wireframes.md)** · **[`accessibility-spec.md`](ios/docs/accessibility-spec.md)** · **[`privacy-label.md`](ios/docs/privacy-label.md)**
+- **[`backward-compatibility.md`](ios/docs/backward-compatibility.md)** · **[`migration-flow.md`](ios/docs/migration-flow.md)** · **[`end-of-life.md`](ios/docs/end-of-life.md)**
+- **[`faq.md`](ios/docs/faq.md)** · **[`known-limits.md`](ios/docs/known-limits.md)** · **[`implementation-checklist.md`](ios/docs/implementation-checklist.md)**
+
+### Chrome extension docs
+
+The full Chrome extension documentation set lives in [`chrome-extension/docs/`](chrome-extension/docs/) — 13 documents covering the browser SDK API, security review, and integration walkthroughs.
+
+- **[`guide.md`](chrome-extension/docs/guide.md)** — top-level Chrome plugin guide
+- **[`api-reference.md`](chrome-extension/docs/api-reference.md)** — Frozen v1 public API surface (`HPP.requestPresence()`, `HPP.getSession()`, etc.)
+- **[`quick-start.md`](chrome-extension/docs/quick-start.md)** · **[`reference-implementation.md`](chrome-extension/docs/reference-implementation.md)** · **[`rp-integration-guide.md`](chrome-extension/docs/rp-integration-guide.md)**
+- **[`extension-spec.md`](chrome-extension/docs/extension-spec.md)** · **[`component-spec.md`](chrome-extension/docs/component-spec.md)** · **[`browser-integration.md`](chrome-extension/docs/browser-integration.md)** · **[`browser-login-spec.md`](chrome-extension/docs/browser-login-spec.md)**
+- **[`protocol-spec.md`](chrome-extension/docs/protocol-spec.md)** — Chrome-side protocol binding
+- **[`system-walkthrough.md`](chrome-extension/docs/system-walkthrough.md)** — End-to-end demo walkthrough
+- **[`demo-site-spec.md`](chrome-extension/docs/demo-site-spec.md)** · **[`security-review.md`](chrome-extension/docs/security-review.md)**
+
+### Vertical integration recipes
+
+[`docs/verticals/`](docs/verticals/) contains 13 recipe books showing how HPP slots into specific industry verticals. Useful for partners scoping a deployment.
+
+- **[`guide.md`](docs/verticals/guide.md)** — top-level integration verticals guide
+- **[`website-integration.md`](docs/verticals/website-integration.md)** — Generic web/JS SDK integration
+- **[`hpp-over-sip-anti-robocall.md`](docs/verticals/hpp-over-sip-anti-robocall.md)** — SIP/VoIP anti-robocall
+- **[`hpp-over-smtp-email-gating.md`](docs/verticals/hpp-over-smtp-email-gating.md)** — SMTP email gating
+- **[`financial-services.md`](docs/verticals/financial-services.md)** — KYC, AML, transaction signing
+- **[`ad-tech-impression-validation.md`](docs/verticals/ad-tech-impression-validation.md)** — Ad-fraud / impression validation
+- **[`age-verification-zkp.md`](docs/verticals/age-verification-zkp.md)** + **[`age-verify-zkp-details.md`](docs/verticals/age-verify-zkp-details.md)** — Zero-knowledge age verification
+- **[`child-safety.md`](docs/verticals/child-safety.md)** — Child-safety / parental-controls integration
+- **[`autonomous-compute-agentic-ai.md`](docs/verticals/autonomous-compute-agentic-ai.md)** — Agentic-AI authentication and continuity
+- **[`e-ticketing-venue-access.md`](docs/verticals/e-ticketing-venue-access.md)** — Event ticketing and venue access
+- **[`tld-presence-gated-namespace.md`](docs/verticals/tld-presence-gated-namespace.md)** — TLD-level presence-gated namespaces
+- **[`ai-triage-defense.md`](docs/verticals/ai-triage-defense.md)** — AI-based bot/triage defense
+
+### Project governance
+
+[`GOVERNANCE.md`](GOVERNANCE.md) and [`MAINTAINERS.md`](MAINTAINERS.md).
 
 ---
 
@@ -220,9 +263,16 @@ hpp-sdk/
 │   ├── Sources/HPP/                     ← public API + extracted internals
 │   ├── Tests/HPPTests/
 │   ├── Examples/                        ← illustrative SwiftUI snippets
-│   ├── docs/
-│   │   └── implementation-notes.md      ← Secure Enclave + Keychain access-control guidance
+│   ├── docs/                            ← 27 client-side docs (security, build, test, monitoring, …)
 │   └── README.md
+│
+├── chrome-extension/                    ← MV3 browser extension
+│   ├── manifest.json + JS sources
+│   ├── docs/                            ← 13 docs (API reference, security review, integration guides, …)
+│   └── README.md
+│
+├── docs/
+│   └── verticals/                       ← 13 integration recipe books (SIP, SMTP, ad-tech, age-ZKP, …)
 │
 ├── website/                      ← Relying-party JS SDK
 │   ├── src/hpp.js                ← source (vanilla, no build)
